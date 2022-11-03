@@ -1,14 +1,7 @@
-<!-- A template for a simple DaCHS SIAP (image search) service.
-To fill it out, search and replace %.*% 
-
-Note that this doesn't expose all features of DaCHS.  For advanced
-projects, you'll still have to read documentation... -->
-
-
 <resource schema="test2" resdir=".">
   <meta name="creationDate">2022-11-03T12:16:29Z</meta>
 
-  <meta name="title">Plates archive of Fesenkov Astrophysical Institute (FAI)</meta>
+  <meta name="title">Archive of the FAI 50 cm Meniskus Maksutov</meta>
 
   <meta name="description">
 The archive of Plates of the Fesenkov Astrophysical Institute (FAI) is an archive of digitized plates and films of the Institute's Glass Library. They represent the results of photometric and spectral observations for about 50 years - from 1950 to 2000.    
