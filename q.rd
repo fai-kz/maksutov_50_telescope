@@ -1,18 +1,24 @@
-<resource schema="test2" resdir=".">
+<resource schema="fai50mak" resdir=".">
   <meta name="creationDate">2022-11-03T12:16:29Z</meta>
 
   <meta name="title">Archive of the FAI 50 cm Meniskus Maksutov</meta>
 
   <meta name="description">
-The archive of Plates of the Fesenkov Astrophysical Institute (FAI) is an archive of digitized plates and films of the Institute's Glass Library. They represent the results of photometric and spectral observations for about 50 years - from 1950 to 2000.    
+The archive of digitized plates obtained on Wide aperture Maksutov meniscus telescope with main mirror 50 cm at the Fesenkov Astrophysical Institute (FAI). They represent the results of photometric observations of stars, star clusrets, active galaxies, nebulaes, etc. for about 50 years - from 1950 to 2000.    
   </meta>
   <!-- Take keywords from 
     http://www.ivoa.net/rdf/uat
     if at all possible -->
-  <meta name="subject">History of astronomy, Active galaxies, Nebulae, Comets, Minor Planets </meta>
+  <meta name="subject">history-of-astronomy></meta>
+  <meta name="subject">active-galaxies</meta>
+  <meta name="subject">gaseous-nebulae</meta>
+  <meta name="subject">star-clusters</meta>
+  <meta name="subject">comets</meta>
+  <meta name="subject">binary-stars</meta>
+  <meta name="subject">multiple-stars</meta>
 
   <meta name="creator">Fesenkov Astrophysical Institute</meta>
-  <meta name="instrument">Image intensifier</meta>
+  <meta name="instrument">Wide aperture Maksutov meniscus telescope with main mirror 50 cm</meta>
   <meta name="facility">Fesenkov Astrophysical Institute</meta>
 
   <!-- <meta name="source"></meta> -->
@@ -24,7 +30,7 @@ The archive of Plates of the Fesenkov Astrophysical Institute (FAI) is an archiv
   <meta name="coverage.waveband">Optical</meta>
 
   <table id="main" onDisk="True" mixin="//siap#pgs" adql="True">
-
+    
     <!-- in the following, just delete any attribute you don't want to
     set.
     
@@ -38,9 +44,40 @@ The archive of Plates of the Fesenkov Astrophysical Institute (FAI) is an archiv
       targetClass="'%simbad target class%'"
     >//obscore#publishSIAP</mixin> -->
   
-    </table>
+    <column name="object" type="text"
+      ucd="meta.id;src"
+      tablehead="Obj."
+      description="Name of object according to observation log."
+      verbLevel="3"/>
+    <column name="target_ra"
+      unit="deg" ucd="pos.eq.ra;meta.main"
+      tablehead="Target RA"
+      description="Right ascension of object from observation log."
+      verbLevel="1"/>
+    <column name="target_dec"
+      unit="deg" ucd="pos.eq.dec;meta.main"
+      tablehead="Target Dec"
+      description="Declination of object from observation log."
+      verbLevel="1"/>
+    <column name="exptime"
+      unit="s" ucd="time.duration;obs.exposure"
+      tablehead="T.Exp"
+      description="Exposure time from observation log."
+      verbLevel="5"/>
+    <column name="observer" type="text"
+      ucd="meta.id;obs.observer"
+      tablehead="Obs. by."
+      description="Observer name from observation log."
+      verbLevel="20"/>
+    <column name="telescope" type="text"
+      ucd="instr.tel"
+      tablehead="Telescope"
+      description="Telescope from observation log."
+      verbLevel="5"/>
 
- 	<coverage>
+  </table>
+
+  <coverage>
     <updater sourceTable="main"/>
   </coverage>
 
@@ -63,6 +100,12 @@ The archive of Plates of the Fesenkov Astrophysical Institute (FAI) is an archiv
 
     <make table="main">
       <rowmaker>
+        <simplemaps>
+          object: OBJECT,
+          exptime: EXPTIME,
+          observer: OBSERVER,
+          telescope: TELESCOP
+        </simplemaps>
         <!-- put vars here to pre-process FITS keys that you need to
           re-format in non-trivial ways. -->
         <apply procDef="//siap#setMeta">
@@ -90,8 +133,8 @@ The archive of Plates of the Fesenkov Astrophysical Institute (FAI) is an archiv
 
         <apply procDef="//siap#computePGS"/>
 
-        <!-- any custom columns need to be mapped here; do *not* use
-          idmaps="*" with SIAP -->
+        <map key="target_ra">hmsToDeg(@OBJCTRA, sepChar=":")</map>
+        <map key="target_dec">dmsToDeg(@OBJCTDEC, sepChar=":")</map>
       </rowmaker>
     </make>
   </data>
