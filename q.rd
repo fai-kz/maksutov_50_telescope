@@ -1,10 +1,11 @@
-<resource schema="fai50mak" resdir=".">
+<resource schema="fai50mak" resdir="fai50mak">
   <meta name="creationDate">2022-11-03T12:16:29Z</meta>
 
   <meta name="title">Archive of the FAI 50 cm Meniskus Maksutov</meta>
 
   <meta name="description">
-The archive of digitized plates obtained on Wide aperture Maksutov meniscus telescope with main mirror 50 cm at the Fesenkov Astrophysical Institute (FAI). They represent the results of photometric observations of stars, star clusrets, active galaxies, nebulaes, etc. for about 50 years - from 1950 to 2000.    
+The archive of digitized plates obtained on Wide aperture Maksutov meniscus telescope with main mirror 50 cm at the Fesenkov Astrophysical Institute (FAI), Almaty, Kazakhstan. They represent the results of photometric and spectral observations of stars, star clusrets, active galaxies, nebulaes, etc. for about 50 years - from 1950 to 1997.    
+  Observations were carried out in the optical range. Telescope specifications: diameter of main mirror D = 500 mm, focal length F = 1200 mm.
   </meta>
   <!-- Take keywords from 
     http://www.ivoa.net/rdf/uat
@@ -79,6 +80,7 @@ The archive of digitized plates obtained on Wide aperture Maksutov meniscus tele
 
   <coverage>
     <updater sourceTable="main"/>
+    <temporal>1950-01-01 1997-12-31</temporal>
   </coverage>
 
   <!-- if you have data that is continually added to, consider using
@@ -103,7 +105,6 @@ The archive of digitized plates obtained on Wide aperture Maksutov meniscus tele
         <simplemaps>
           object: OBJECT,
           exptime: EXPTIME,
-          observer: OBSERVER,
           telescope: TELESCOP
         </simplemaps>
         <!-- put vars here to pre-process FITS keys that you need to
@@ -135,6 +136,24 @@ The archive of digitized plates obtained on Wide aperture Maksutov meniscus tele
 
         <map key="target_ra">hmsToDeg(@OBJCTRA, sepChar=":")</map>
         <map key="target_dec">dmsToDeg(@OBJCTDEC, sepChar=":")</map>
+
+	<!--<map key="observer" source="OBSERVER" nullExcs="KyeError"/>-->
+	<!--<map key="observer" source="OBSERVER", nullExcs="KyeError"/>-->
+	<!--<map key="observer", source="OBSERVER", nullExcs="KyeError"/>-->
+	<!--<map key="observer"> source="OBSERVER" nullExcs="KyeError"</map>-->
+	<map key="observer"> source="OBSERVER", nullExcs="KyeError"</map>
+	<!--<map key="observer" source=var["OBSERVER"] nullExcs="KyeError"/>-->
+	<!--<map key="observer" source=var["OBSERVER"], nullExcs="KyeError"/>-->
+	<!--<map key="observer", source=var["OBSERVER"], nullExcs="KyeError"/>-->
+	<!--<map key="observer"> source=var["OBSERVER"] nullExcs="KyeError"</map>-->
+	<!--<map key="observer"> source=var["OBSERVER"], nullExcs="KyeError"</map>-->
+	<!--<map key="observer"> source=@OBSERVER nullExcs="KyeError"</map>-->
+	<!--<map key="observer"> source=@OBSERVER, nullExcs="KyeError"</map>-->
+	<!--<map key="observer" source=@OBSERVER nullExcs="KyeError"/>-->
+	<!--<map key="observer" source=@OBSERVER, nullExcs="KyeError"/>-->
+	<!--<map key="observer", source=@OBSERVER, nullExcs="KyeError"/>-->
+
+
       </rowmaker>
     </make>
   </data>
