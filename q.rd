@@ -26,8 +26,6 @@ The archive of digitized plates obtained on Wide aperture Maksutov meniscus tele
   <meta name="contentLevel">Research</meta>
   <meta name="type">Archive</meta>  <!-- or Archive, Survey, Simulation -->
 
-  <!-- Waveband is of Radio, Millimeter, 
-      Infrared, Optical, UV, EUV, X-ray, Gamma-ray, can be repeated -->
   <meta name="coverage.waveband">Optical</meta>
 
   <table id="main" onDisk="True" mixin="//siap#pgs" adql="True">
@@ -83,17 +81,9 @@ The archive of digitized plates obtained on Wide aperture Maksutov meniscus tele
     <temporal>1950-01-01 1997-12-31</temporal>
   </coverage>
 
-  <!-- if you have data that is continually added to, consider using
-    updating="True" and an ignorePattern here; see also howDoI.html,
-    incremental updating -->
   <data id="import">
     <sources pattern="data/*.fits"/>
 
-    <!-- the fitsProdGrammar should do it for whenever you have
-    halfway usable FITS files.  If they're not halfway usable,
-    consider running a processor to fix them first – you'll hand
-    them out to users, and when DaCHS can't deal with them, chances
-    are their clients can't either -->
     <fitsProdGrammar>
       <rowfilter procDef="//products#define">
         <bind key="table">"\schema.main"</bind>
@@ -107,11 +97,7 @@ The archive of digitized plates obtained on Wide aperture Maksutov meniscus tele
           exptime: EXPTIME,
           telescope: TELESCOP
         </simplemaps>
-        <!-- put vars here to pre-process FITS keys that you need to
-          re-format in non-trivial ways. -->
         <apply procDef="//siap#setMeta">
-          <!-- DaCHS can deal with some time formats; otherwise, you
-            may want to use parseTimestamp(@DATE_OBS, '%Y %m %d...') -->
           <bind key="dateObs">@DATE_OBS</bind>
 
           <!-- bandpassId should be one of the keys from
@@ -137,47 +123,25 @@ The archive of digitized plates obtained on Wide aperture Maksutov meniscus tele
         <map key="target_ra">hmsToDeg(@OBJCTRA, sepChar=":")</map>
         <map key="target_dec">dmsToDeg(@OBJCTDEC, sepChar=":")</map>
 
-	<!--<map key="observer" source="OBSERVER" nullExcs="KyeError"/>-->
-	<!--<map key="observer" source="OBSERVER", nullExcs="KyeError"/>-->
-	<!--<map key="observer", source="OBSERVER", nullExcs="KyeError"/>-->
-	<!--<map key="observer"> source="OBSERVER" nullExcs="KyeError"</map>-->
-	<map key="observer"> source="OBSERVER", nullExcs="KyeError"</map>
-	<!--<map key="observer" source=var["OBSERVER"] nullExcs="KyeError"/>-->
-	<!--<map key="observer" source=var["OBSERVER"], nullExcs="KyeError"/>-->
-	<!--<map key="observer", source=var["OBSERVER"], nullExcs="KyeError"/>-->
-	<!--<map key="observer"> source=var["OBSERVER"] nullExcs="KyeError"</map>-->
-	<!--<map key="observer"> source=var["OBSERVER"], nullExcs="KyeError"</map>-->
-	<!--<map key="observer"> source=@OBSERVER nullExcs="KyeError"</map>-->
-	<!--<map key="observer"> source=@OBSERVER, nullExcs="KyeError"</map>-->
-	<!--<map key="observer" source=@OBSERVER nullExcs="KyeError"/>-->
-	<!--<map key="observer" source=@OBSERVER, nullExcs="KyeError"/>-->
-	<!--<map key="observer", source=@OBSERVER, nullExcs="KyeError"/>-->
-
-
+	<map key="observer" source="OBSERVER" nullExcs="KeyError"/>
       </rowmaker>
     </make>
   </data>
 
-  <!-- if you want to build an attractive form-based service from
-    SIAP, you probably want to have a custom form service; for
-    just basic functionality, this should do, however. -->
   <service id="i" allowed="form,siap.xml">
-    <meta name="shortName">%up to 16 characters%</meta>
+    <meta name="shortName">fai50mak images</meta>
 
-    <!-- other sia.types: Cutout, Mosaic, Atlas -->
     <meta name="sia.type">Pointed</meta>
     
-    <meta name="testQuery.pos.ra">%ra one finds an image at%</meta>
-    <meta name="testQuery.pos.dec">%dec one finds an image at%</meta>
+    <meta name="testQuery.pos.ra">84.2</meta>
+    <meta name="testQuery.pos.dec">9.3</meta>
     <meta name="testQuery.size.ra">0.1</meta>
     <meta name="testQuery.size.dec">0.1</meta>
 
     <!-- this is the VO publication -->
-    <publish render="scs.xml" sets="ivo_managed"/>
+    <publish render="siap.xml" sets="ivo_managed"/>
     <!-- this puts the service on the root page -->
     <publish render="form" sets="local,ivo_managed"/>
-    <!-- all publish elements only become active after you run
-      dachs pub q -->
 
     <dbCore queriedTable="main">
       <condDesc original="//siap#protoInput"/>
@@ -197,20 +161,20 @@ The archive of digitized plates obtained on Wide aperture Maksutov meniscus tele
     </dbCore>
   </service>
 
-  <regSuite title="test2 regression">
+  <regSuite title="fai50mak regression">
     <!-- see http://docs.g-vo.org/DaCHS/ref.html#regression-testing
       for more info on these. -->
 
-    <regTest title="test2 SIAP serves some data">
-      <url POS="%ra,dec that has a bit of data%" SIZE="0.1,0.1"
+    <regTest title="fai50mak SIAP serves some data">
+      <url POS="84.2,9.3" SIZE="0.1,0.1"
         >i/siap.xml</url>
       <code>
-        <!-- to figure out some good strings to use here, run
-          dachs test -D tmp.xml q
-          and look at tmp.xml -->
-        self.assertHasStrings(
-          "%some characteristic string returned by the query%",
-          "%another characteristic string returned by the query%")
+        rows = self.getVOTableRows()
+        self.assertEqual(len(rows), 1)
+        row = rows[0]
+        self.assertEqual(row["object"], "lambda-Ori")
+        self.assertEqual(row["imageTitle"], 
+                'lambda-Ori_209-10.02.1958_20m_11-1964.fit')
       </code>
     </regTest>
 
