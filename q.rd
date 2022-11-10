@@ -135,8 +135,40 @@ The archive of digitized plates obtained on Wide aperture Maksutov meniscus tele
     </make>
   </data>
 
-  <service id="i" allowed="form,siap.xml">
-    <meta name="shortName">fai50mak images</meta>
+  <dbCore queriedTable="main" id="imagecore">
+    <condDesc original="//siap#protoInput"/>
+    <condDesc original="//siap#humanInput"/>
+    <condDesc buildFrom="dateObs"/>
+    <condDesc>
+      <inputKey name="object" type="text" multiplicity="force-single"
+          tablehead="Target Object" 
+          description="Object being observed, Simbad-resolvable form"
+          ucd="meta.name">
+          <values fromdb="unnest(objects) FROM fai50mak.main"/>
+      </inputKey>
+      <phraseMaker>
+        <code><![CDATA[
+          yield "array[%({})s] && objects".format(
+            base.getSQLKey("object", inPars["object"], outPars))
+        ]]></code>
+      </phraseMaker>
+    </condDesc>
+  </dbCore>
+
+  <service id="web" allowed="form" core="imagecore">
+    <meta name="shortName">fai50mak web</meta>
+    <outputTable autoCols="accref,accsize,centerAlpha,centerDelta,
+        dateObs,imageTitle">
+      <outputField original="objects">
+        <formatter>
+          return " - ".join(data)
+        </formatter>
+      </outputField>
+    </outputTable>
+  </service>
+
+  <service id="i" allowed="form,siap.xml" core="imagecore">
+    <meta name="shortName">fai50mak siap</meta>
 
     <meta name="sia.type">Pointed</meta>
     
@@ -148,27 +180,8 @@ The archive of digitized plates obtained on Wide aperture Maksutov meniscus tele
     <!-- this is the VO publication -->
     <publish render="siap.xml" sets="ivo_managed"/>
     <!-- this puts the service on the root page -->
-    <publish render="form" sets="local,ivo_managed"/>
+    <publish render="form" sets="local,ivo_managed" service="web"/>
 
-    <dbCore queriedTable="main">
-      <condDesc original="//siap#protoInput"/>
-      <condDesc original="//siap#humanInput"/>
-      <condDesc buildFrom="dateObs"/>
-      <condDesc>
-        <inputKey name="object" type="text" 
-            tablehead="Target Object" 
-            description="Object being observed, Simbad-resolvable form"
-            ucd="meta.name">
-            <values fromdb="unnest(objects) FROM fai50mak.main"/>
-        </inputKey>
-        <phraseMaker>
-          <code><![CDATA[
-            yield "array[%({})s] && objects".format(
-              base.getSQLKey("object", inPars["object"][0], outPars))
-          ]]></code>
-        </phraseMaker>
-      </condDesc>
-    </dbCore>
   </service>
 
   <regSuite title="fai50mak regression">
