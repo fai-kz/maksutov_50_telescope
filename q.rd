@@ -1,7 +1,7 @@
 <resource schema="fai50mak" resdir="fai50mak">
   <meta name="creationDate">2022-11-03T12:16:29Z</meta>
 
-  <meta name="title">Archive of the FAI 50 cm Meniskus Maksutov</meta>
+  <meta name="title">Archive of the FAI 50 cm Meniskus Maksutov telescope</meta>
 
   <meta name="description">
 The archive of digitized plates obtained on Wide aperture Maksutov meniscus telescope with main mirror 50 cm at the Fesenkov Astrophysical Institute (FAI), Almaty, Kazakhstan. They represent the results of photometric and spectral observations of stars, star clusrets, active galaxies, nebulaes, etc. for about 50 years - from 1950 to 1997.    
@@ -28,7 +28,7 @@ The archive of digitized plates obtained on Wide aperture Maksutov meniscus tele
 
   <meta name="coverage.waveband">Optical</meta>
 
-  <table id="main" onDisk="True" mixin="//siap#pgs" adql="True">
+  <table id="main" onDisk="True" mixin="//siap#pgs" adql="False">
     
     <!-- in the following, just delete any attribute you don't want to
     set.
