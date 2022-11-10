@@ -43,18 +43,11 @@ The archive of digitized plates obtained on Wide aperture Maksutov meniscus tele
       targetClass="'%simbad target class%'"
     >//obscore#publishSIAP</mixin> -->
   
-    <column name="objects" type="text"
+    <column name="objects" type="text[]"
       ucd="meta.id;src"
       tablehead="Objs."
       description="Names objects from the observation log."
       verbLevel="3"/>
-    <column name="main_object" type="text"
-      ucd="meta.id;src;meta.main"
-      tablehead="Main Obj."
-      description="Name of the most promiment object observed."
-      verbLevel="3">
-      <property key="statistics">enumerate</property>
-    </column>
     <column name="target_ra"
       unit="deg" ucd="pos.eq.ra;meta.main"
       tablehead="Target RA"
@@ -98,9 +91,8 @@ The archive of digitized plates obtained on Wide aperture Maksutov meniscus tele
     </fitsProdGrammar>
 
     <make table="main">
-      <rowmaker idmaps="main_object">
+      <rowmaker>
         <simplemaps>
-          objects: OBJECT,
           exptime: EXPTIME,
           telescope: TELESCOP
         </simplemaps>
@@ -128,7 +120,7 @@ The archive of digitized plates obtained on Wide aperture Maksutov meniscus tele
         <apply procDef="//siap#computePGS"/>
 
         <apply procDef="//procs#mapValue">
-          <bind name="destination">"main_object"</bind>
+          <bind name="destination">"mapped_names"</bind>
           <bind name="failuresMapThrough">True</bind>
           <bind name="logFailures">True</bind>
           <bind name="value">@OBJECT</bind>
@@ -137,14 +129,46 @@ The archive of digitized plates obtained on Wide aperture Maksutov meniscus tele
 
         <map key="target_ra">hmsToDeg(@OBJCTRA, sepChar=":")</map>
         <map key="target_dec">dmsToDeg(@OBJCTDEC, sepChar=":")</map>
-
-  <map key="observer" source="OBSERVER" nullExcs="KeyError"/>
+        <map key="observer" source="OBSERVER" nullExcs="KeyError"/>
+        <map key="objects">@mapped_names.split("|")</map>
       </rowmaker>
     </make>
   </data>
 
-  <service id="i" allowed="form,siap.xml">
-    <meta name="shortName">fai50mak images</meta>
+  <dbCore queriedTable="main" id="imagecore">
+    <condDesc original="//siap#protoInput"/>
+    <condDesc original="//siap#humanInput"/>
+    <condDesc buildFrom="dateObs"/>
+    <condDesc>
+      <inputKey name="object" type="text" multiplicity="force-single"
+          tablehead="Target Object" 
+          description="Object being observed, Simbad-resolvable form"
+          ucd="meta.name">
+          <values fromdb="unnest(objects) FROM fai50mak.main"/>
+      </inputKey>
+      <phraseMaker>
+        <code><![CDATA[
+          yield "array[%({})s] && objects".format(
+            base.getSQLKey("object", inPars["object"], outPars))
+        ]]></code>
+      </phraseMaker>
+    </condDesc>
+  </dbCore>
+
+  <service id="web" allowed="form" core="imagecore">
+    <meta name="shortName">fai50mak web</meta>
+    <outputTable autoCols="accref,accsize,centerAlpha,centerDelta,
+        dateObs,imageTitle">
+      <outputField original="objects">
+        <formatter>
+          return " - ".join(data)
+        </formatter>
+      </outputField>
+    </outputTable>
+  </service>
+
+  <service id="i" allowed="form,siap.xml" core="imagecore">
+    <meta name="shortName">fai50mak siap</meta>
 
     <meta name="sia.type">Pointed</meta>
     
@@ -156,14 +180,8 @@ The archive of digitized plates obtained on Wide aperture Maksutov meniscus tele
     <!-- this is the VO publication -->
     <publish render="siap.xml" sets="ivo_managed"/>
     <!-- this puts the service on the root page -->
-    <publish render="form" sets="local,ivo_managed"/>
+    <publish render="form" sets="local,ivo_managed" service="web"/>
 
-    <dbCore queriedTable="main">
-      <condDesc original="//siap#protoInput"/>
-      <condDesc original="//siap#humanInput"/>
-      <condDesc buildFrom="main_object"/>
-      <condDesc buildFrom="dateObs"/>
-    </dbCore>
   </service>
 
   <regSuite title="fai50mak regression">
