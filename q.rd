@@ -147,7 +147,7 @@ The archive of digitized plates obtained on Wide aperture Maksutov meniscus tele
           <values fromdb="unnest(objects) FROM fai50mak.main"/>
       </inputKey>
       <phraseMaker>
-      	<setup imports="numpy"/>
+        <setup imports="numpy"/>
         <code><![CDATA[
           yield "%({})s && objects".format(
             base.getSQLKey("object", 
@@ -159,6 +159,8 @@ The archive of digitized plates obtained on Wide aperture Maksutov meniscus tele
 
   <service id="web" allowed="form" core="imagecore">
     <meta name="shortName">fai50mak web</meta>
+    <meta name="title">Web interface to FAI 50 cm Meniskus Maksutov
+      telescope archive</meta>
     <outputTable autoCols="accref,accsize,centerAlpha,centerDelta,
         dateObs,imageTitle">
       <outputField original="objects">
@@ -203,7 +205,18 @@ The archive of digitized plates obtained on Wide aperture Maksutov meniscus tele
       </code>
     </regTest>
 
-    <!-- add more tests: image actually delivered, form-based service
-      renders custom widgets, etc. -->
+    <regTest title="Multiple objects can be queried">
+      <url parSet="form">
+      	<object>M20</object>
+      	<object>lam Ori</object>web/form</url>
+      <code><![CDATA[
+      	self.assertHasStrings("29.8MiB",  # size or lam Ori image
+      		"M8-NGC6523-M", # part of m8 filename
+      		"<td>M8-NGC6523-M20-NGC6514_08-09.07.1953_35m_13-79")
+      	self.assertLacksStrings(
+      		"31.03-01.04.1960" # part of a non-matching image in the test set
+      	)
+      ]]></code>
+    </regTest>
   </regSuite>
 </resource>
