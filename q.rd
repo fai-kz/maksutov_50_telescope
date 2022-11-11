@@ -140,16 +140,18 @@ The archive of digitized plates obtained on Wide aperture Maksutov meniscus tele
     <condDesc original="//siap#humanInput"/>
     <condDesc buildFrom="dateObs"/>
     <condDesc>
-      <inputKey name="object" type="text" multiplicity="force-single"
+      <inputKey name="object" type="text" multiplicity="multiple"
           tablehead="Target Object" 
           description="Object being observed, Simbad-resolvable form"
           ucd="meta.name">
           <values fromdb="unnest(objects) FROM fai50mak.main"/>
       </inputKey>
       <phraseMaker>
+      	<setup imports="numpy"/>
         <code><![CDATA[
-          yield "array[%({})s] && objects".format(
-            base.getSQLKey("object", inPars["object"], outPars))
+          yield "%({})s && objects".format(
+            base.getSQLKey("object", 
+            numpy.array(inPars["object"]), outPars))
         ]]></code>
       </phraseMaker>
     </condDesc>
