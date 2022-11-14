@@ -43,7 +43,7 @@ The archive of digitized plates obtained on Wide aperture Maksutov meniscus tele
       targetClass="'%simbad target class%'"
     >//obscore#publishSIAP</mixin> -->
   
-    <column name="objects" type="text[]"
+    <column name="objects" type="char(15)[]"
       ucd="meta.id;src"
       tablehead="Objs."
       description="Names objects from the observation log."
@@ -199,7 +199,8 @@ The archive of digitized plates obtained on Wide aperture Maksutov meniscus tele
         rows = self.getVOTableRows()
         self.assertEqual(len(rows), 1)
         row = rows[0]
-        self.assertEqual(row["object"], "lambda-Ori")
+        self.assertEqual(row["objects"][0].strip(), "lam Ori")
+        self.assertEqual(len(row["objects"]), 1)
         self.assertEqual(row["imageTitle"], 
                 'lambda-Ori_209-10.02.1958_20m_11-1964.fit')
       </code>
