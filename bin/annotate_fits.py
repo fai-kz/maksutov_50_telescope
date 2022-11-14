@@ -1,36 +1,65 @@
+"""
+This is a DaCHS processor (http://docs.g-vo.org/DaCHS/processors.html)
+to add standard headers to FITS files from the FAI 50cm Maksutov telescope.
+"""
+
+import csv
+import glob
+import os
+import re
+
 from gavo.helpers import fitstricks
 from gavo import api
 
 class PAHeaderAdder(api.HeaderProcessor):
 
   def _createAuxiliaries(self, dd):
-    # read the observation log from somewher in the resdir
-    # it's usually a good idea to use a DaCHS parser for that, but
-    # let's keep this example straightforward.
-    self.platemeta = {}
-    colLabels = ["plateid", "epoch", "emulsion", "observer", "object"]
+    logs_dir = os.path.join(
+      dd.rd.resdir, "logbook")
+    recs = []
 
-    with open(os.path.join(dd.rd.resdir, "data", "platecat.tsv") as f:
-      for ln in f:
-        rec = dict(zip(colLabels, [s.strip() for s in ln.split("\t")]))
-      self.platemeta[rec["plateid"] = rec
+    for src_f in glob.glob(logs_dir+"/*.csv"):
+      with open(src_f, "r", encoding="utf-8") as f:
+        rdr = csv.DictReader(f)
+        desired_keys = dict(
+          (n, (n or "EMPTY").split()[0]) for n in rdr.fieldnames)
+        source_key = os.path.basename(src_f).split(".")[0]
+
+        for rec in rdr:
+          new_rec = {
+            "source-file": source_key}
+          for k, v in rec.items():
+            new_key = desired_keys[k]
+            if new_key=="Идентификационный":
+              new_key = "ID"
+            new_rec[new_key] = v
+          recs.append(new_rec)
+
+    self.platemeta = dict(
+      (rec["ID"], rec) for rec in recs)
 
   def _isProcessed(self, srcName):
-    # typically, check for a header that's not in your input files
-    return "OBSERVER" in self.getPrimaryHeader(srcName)
+    return os.path.exists(srcName+".hdr")
 
   def _mungeHeader(self, srcName, hdr):
-    plateid = hdr["PLATEID"] # more typically: grab it from srcName
-    thismeta = self.platemeta["plateid"]
+    plateid = srcName.split(".")[-2].split("_")[-1]
+    thismeta = self.platemeta[plateid]
 
-    # you'll usually want to drop some junky headers from hdr
-    del hdr["BROKEN"]
+    mat = re.match(r"(\d\d)h(\d\d)m$", thismeta["RA"])
+    formatted_ra = "{}:{}".format(mat.group(1), mat.group(2))
+    mat = re.match(r"(\d\d)\.(\d\d)$", thismeta["DEC"])
+    formatted_dec = "{}:{}".format(mat.group(1), mat.group(2))
+    cleaned_object = re.sub("[^ -~]+", "", thismeta["OBJECT"])
 
     return fitstricks.makeHeaderFromTemplate(
       fitstricks.WFPDB_TEMPLATE,
       originalHeader=hdr,
-      DATEORIG=api.jYearToDateTime(float(thismeta["epoch"])).isoformat(),
-      EMULISON=thismeta["epoch"],
-      OBSERVER=thismeta["observer"],
-      OBJECT=thismeta["object"],
+      RA_ORIG=formatted_ra,
+      DEC_ORIG=formatted_dec,
+#      OBSERVER=thismeta["OBSERVER"],
+      OBJECT=cleaned_object,
       ORIGIN="Contant")
+
+
+if __name__=="__main__":
+  api.procmain(PAHeaderAdder, "fai50mak/q", "import")
