@@ -45,13 +45,59 @@ class PAHeaderAdder(api.HeaderProcessor):
     plateid = srcName.split(".")[-2].split("_")[-1]
     thismeta = self.platemeta[plateid]
 
+		#group 2
+		#coords orig
+
     mat = re.match(r"(\d\d)h(\d\d)m$", thismeta["RA"])
     formatted_ra = "{}:{}".format(mat.group(1), mat.group(2))
     mat = re.match(r"(\d\d)\.(\d\d)$", thismeta["DEC"])
     formatted_dec = "{}:{}".format(mat.group(1), mat.group(2))
     cleaned_object = re.sub("[^ -~]+", "", thismeta["OBJECT"])
 
-    return fitstricks.makeHeaderFromTemplate(
+		#date orig
+
+		#time start
+
+		#time end
+
+		#obj type
+
+		#exptimen
+		exp = thismeta["EXPTIME"]
+		#numexp
+
+		#observat
+		observatory = "Fesenkov Astrophysical Institute"
+
+		#sitename
+		sitename = "https://www.fai.kz"
+
+		sitelong = 43.17667
+		sitelat = 76.96611
+		siteelev = 1450
+
+		#telescope
+		tel_dict = {"50cm менисковый телескоп Максутова":"Wide aperture Maksutov meniscus telescope with main mirror 50 cm" "Большой Шмидт": "Schmidt telescope (large camera)"}
+		if thismeta["TELESCOPE"] == thismeta["TELESCOPE"]:
+			telescope = tel_dict[thismeta["TELESCOPE"]]
+		else:
+			telescope = "unknown"
+
+		#foclen
+		foclen_dic = {"Wide aperture Maksutov meniscus telescope with main mirror 50 cm":1.2,"Schmidt telescope (large camera)":0.773,"Schmidt telescope (small camera)":0.17, "unknown":0}
+		foclen = foclen_dic[telescope]
+		
+		#observer
+		observers_dict = {'Рожковский Д.А.': 'Rozhkovskij D.A.', 'Торопова Т.П.':'Tropova T.P.', 
+                  'Городецкий Д.И.':'Gordetskij D.I.', 'Глушков Ю.И.':'Glushkovskij Yu.I.','Торопова Т.П.  Рожковский Д.А.': 'Tropova T.P., Rozhkovskij D.A.',
+                  'Рожковский Д.А., Торопова Т.П.' : 'Rozhkovskij D.A., Tropova T.P.', 'Рожковский Д.А., Павлова Л.А.' : 'Rozhkovskij D.A., Pavlova L.A.',
+                  'Карягина З.В.':'Karyagina Z.V.', 'Матягин В.С.': 'Matyagin V.S.', 'Павлова Л.А':'Pavlova L.A.', 'Гаврилов':'Gavrilov', 
+                  'Курчаков А.В.':'Kurchakov A.V.','Рожковский Д.А.   Городецкий Д.И.':'Rozhkovskij D.A.   Gordetskij D.I.','Солодовников В.В.':'Solodovnikov V.V.'}
+
+			observer = observers_dict[thismeta["OBSERVER"]]
+
+
+      return fitstricks.makeHeaderFromTemplate(
       fitstricks.WFPDB_TEMPLATE,
       originalHeader=hdr,
       RA_ORIG=formatted_ra,
