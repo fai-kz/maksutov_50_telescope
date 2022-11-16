@@ -95,36 +95,42 @@ def parse_exposure_times(raw_exp_times):
 
 
 def get_exposure_cards(raw_exp_times):
-	"""
-	returns dict of keyword-value pairs for the FITS headers for our raw
-	exposure times.
-
-	>>> get_exposure_cards("1h")
-	{'EXPTIME': 3600.0}
-	>>> get_exposure_cards("1h;5h")
-	{'EXPTIME': 3600.0, 'EXPTIM1': 3600.0, 'EXPTIM2': 18000.0}
-	"""
-	exptimes = parse_exposure_times(raw_exp_times)
-	if len(exptimes)==1:
-		return {"EXPTIME": exptimes[0]}
-	else:
-		retval = {"EXPTIME": exptimes[0]}
-		retval.update(dict(
-			(f"EXPTIM{n+1}", val) for n, val in enumerate(exptimes)))
-		return retval
-
-
-def parse_dec(raw_dec):
   """
-  the function returns list of declanation in two formats: "dd:mm:ss" and float (degrees)
-  >>> parse_dec("29.06")
-  "29:03:36"
-  >>> parse_dec("-23.30")
-  "-23:18:00"
-  >>> parse_dec("50 41 45")
-  "50:41:45"
-  >>> parse_dec("-01 28 02")
+  returns dict of keyword-value pairs for the FITS headers for our raw
+  exposure times.
+
+  >>> get_exposure_cards("1h")
+  {'EXPTIME': 3600.0}
+  >>> get_exposure_cards("1h;5h")
+  {'EXPTIME': 3600.0, 'EXPTIM1': 3600.0, 'EXPTIM2': 18000.0}
   """
+  exptimes = parse_exposure_times(raw_exp_times)
+  if len(exptimes)==1:
+    return {"EXPTIME": exptimes[0]}
+  else:
+    retval = {"EXPTIME": exptimes[0]}
+    retval.update(dict(
+      (f"EXPTIM{n+1}", val) for n, val in enumerate(exptimes)))
+    return retval
+
+
+def reformat_dec(raw_dec):
+  """
+  returns declination in the format "dd:mm:ss".
+
+  >>> reformat_dec("29.06")
+  '29:03:36'
+  >>> reformat_dec("-23.30")
+  '-23:18:00'
+  >>> reformat_dec("50 41 45")
+  '50:41:45'
+  >>> reformat_dec("-01 28 02")
+  >>> reformat_dec("-01 28")
+  """
+  if "." in raw_dec:
+    return api.degToDms(float(raw_dec), sepChar=":")
+  else:
+    return raw_dec.replace(" ", ":")
 
 
 def run_tests(*args):
@@ -209,7 +215,8 @@ class PAHeaderAdder(api.HeaderProcessor):
     
     observer = OBSERVERS_LATIN[thismeta["OBSERVER"]]
 
-		variable_arguments = get_exposure_cards(thismeta["EXPTIME"])
+    variable_arguments = get_exposure_cards(thismeta["EXPTIME"])
+    # variable_arguments.update(...)
 
     return fitstricks.makeHeaderFromTemplate(
       fitstricks.WFPDB_TEMPLATE,
@@ -220,7 +227,8 @@ class PAHeaderAdder(api.HeaderProcessor):
       OBJECT=cleaned_object,
       EXPTIM=exptime,
       SCANAUTH="Shomshekova S., Umirbayeva A., Moshkina S.",
-      ORIGIN="Contant")
+      ORIGIN="Contant",
+      **variable_arguments)
 
 
 if __name__=="__main__":
