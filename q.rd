@@ -122,7 +122,7 @@ The archive of digitized plates obtained on Wide aperture Maksutov meniscus tele
         <apply procDef="//procs#mapValue">
           <bind name="destination">"mapped_names"</bind>
           <bind name="failuresMapThrough">True</bind>
-          <bind name="logFailures">True</bind>
+          <bind name="logFailures">False</bind>
           <bind name="value">@OBJECT</bind>
           <bind name="sourceName">"fai50mak/res/name-map.txt"</bind>
         </apply>

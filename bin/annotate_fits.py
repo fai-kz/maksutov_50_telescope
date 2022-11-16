@@ -67,6 +67,17 @@ def parse_exposure_times(raw_exp_times):
     for raw_time in raw_exp_times.split(";")]
 
 
+def parse_dec(raw_dec):
+	"""
+	the function returns list of declanation in two formats: "dd:mm:ss" and float (degrees)
+	>>> parse_dec("29.06")
+	"29:03:36"
+	>>> parse_dec("-23.30")
+	"-23:18:00"
+	>>> parse_dec("50 41 45")
+	"50:41:45"
+	>>> parse_dec("-01 28 02")
+	""
 def run_tests(*args):
   """
   runs all doctests and exits the program.
@@ -132,15 +143,12 @@ class PAHeaderAdder(api.HeaderProcessor):
     #obj type
 
     #exptimen
-    exp = thismeta["EXPTIME"]
+    exp = parse_exposure_times(thismeta["EXPTIME"])
     #numexp
 
     #observat
     observatory = "Fesenkov Astrophysical Institute"
-
-    #sitename
     sitename = "https://www.fai.kz"
-
     sitelong = 43.17667
     sitelat = 76.96611
     siteelev = 1450
@@ -173,6 +181,8 @@ class PAHeaderAdder(api.HeaderProcessor):
       DEC_ORIG=formatted_dec,
 #      OBSERVER=thismeta["OBSERVER"],
       OBJECT=cleaned_object,
+			EXPTIM=exp
+			SCANAUTH="Shomshekova S., Umirbayeva A., Moshkina S.",
       ORIGIN="Contant")
 
 
