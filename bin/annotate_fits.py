@@ -94,6 +94,26 @@ def parse_exposure_times(raw_exp_times):
     for raw_time in raw_exp_times.split(";")]
 
 
+def get_exposure_cards(raw_exp_times):
+	"""
+	returns dict of keyword-value pairs for the FITS headers for our raw
+	exposure times.
+
+	>>> get_exposure_cards("1h")
+	{'EXPTIME': 3600.0}
+	>>> get_exposure_cards("1h;5h")
+	{'EXPTIME': 3600.0, 'EXPTIM1': 3600.0, 'EXPTIM2': 18000.0}
+	"""
+	exptimes = parse_exposure_times(raw_exp_times)
+	if len(exptimes)==1:
+		return {"EXPTIME": exptimes[0]}
+	else:
+		retval = {"EXPTIME": exptimes[0]}
+		retval.update(dict(
+			(f"EXPTIM{n+1}", val) for n, val in enumerate(exptimes)))
+		return retval
+
+
 def parse_dec(raw_dec):
   """
   the function returns list of declanation in two formats: "dd:mm:ss" and float (degrees)
@@ -104,7 +124,9 @@ def parse_dec(raw_dec):
   >>> parse_dec("50 41 45")
   "50:41:45"
   >>> parse_dec("-01 28 02")
-  ""
+  """
+
+
 def run_tests(*args):
   """
   runs all doctests and exits the program.
@@ -169,8 +191,6 @@ class PAHeaderAdder(api.HeaderProcessor):
 
     #obj type
 
-    #exptimen
-    exp = parse_exposure_times(thismeta["EXPTIME"])
     #numexp
 
     #observat
@@ -189,6 +209,8 @@ class PAHeaderAdder(api.HeaderProcessor):
     
     observer = OBSERVERS_LATIN[thismeta["OBSERVER"]]
 
+		variable_arguments = get_exposure_cards(thismeta["EXPTIME"])
+
     return fitstricks.makeHeaderFromTemplate(
       fitstricks.WFPDB_TEMPLATE,
       originalHeader=hdr,
@@ -196,7 +218,7 @@ class PAHeaderAdder(api.HeaderProcessor):
       DEC_ORIG=formatted_dec,
 #      OBSERVER=thismeta["OBSERVER"],
       OBJECT=cleaned_object,
-      EXPTIM=exp
+      EXPTIM=exptime,
       SCANAUTH="Shomshekova S., Umirbayeva A., Moshkina S.",
       ORIGIN="Contant")
 
