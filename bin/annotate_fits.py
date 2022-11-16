@@ -12,6 +12,33 @@ import sys
 from gavo.helpers import fitstricks
 from gavo import api
 
+TELESCOPE_LATIN = {
+  "50cm менисковый телескоп Максутова":
+    "Wide aperture Maksutov meniscus telescope with main mirror 50 cm",
+  "Большой Шмидт": "Schmidt telescope (large camera)"}
+
+FOCAL_LENGTHS = {
+  "Wide aperture Maksutov meniscus telescope with main mirror 50 cm": 1.2,
+  "Schmidt telescope (large camera)": 0.773,
+  "Schmidt telescope (small camera)":0.17}
+    
+OBSERVERS_LATIN = {
+  'Рожковский Д.А.': 'Rozhkovskij D.A.', 
+  'Торопова Т.П.':'Tropova T.P.', 
+  'Городецкий Д.И.':'Gordetskij D.I.',
+  'Глушков Ю.И.':'Glushkovskij Yu.I.',
+  'Торопова Т.П.  Рожковский Д.А.': 'Tropova T.P., Rozhkovskij D.A.',
+  'Рожковский Д.А., Торопова Т.П.' : 'Rozhkovskij D.A., Tropova T.P.', 
+  'Рожковский Д.А., Павлова Л.А.' : 'Rozhkovskij D.A., Pavlova L.A.',
+  'Карягина З.В.':'Karyagina Z.V.', 
+  'Матягин В.С.': 'Matyagin V.S.', 
+  'Павлова Л.А': 'Pavlova L.A.', 
+  'Гаврилов': 'Gavrilov', 
+  'Курчаков А.В.': 'Kurchakov A.V.',
+  'Рожковский Д.А.   Городецкий Д.И.':'Rozhkovskij D.A.   Gordetskij D.I.',
+  'Солодовников В.В.': 'Solodovnikov V.V.'}
+
+
 
 def parse_single_time(raw_time):
   """returns seconds of time for an h-m-s time string.
@@ -67,17 +94,45 @@ def parse_exposure_times(raw_exp_times):
     for raw_time in raw_exp_times.split(";")]
 
 
-def parse_dec(raw_dec):
-	"""
-	the function returns list of declanation in two formats: "dd:mm:ss" and float (degrees)
-	>>> parse_dec("29.06")
-	"29:03:36"
-	>>> parse_dec("-23.30")
-	"-23:18:00"
-	>>> parse_dec("50 41 45")
-	"50:41:45"
-	>>> parse_dec("-01 28 02")
-	""
+def get_exposure_cards(raw_exp_times):
+  """
+  returns dict of keyword-value pairs for the FITS headers for our raw
+  exposure times.
+
+  >>> get_exposure_cards("1h")
+  {'EXPTIME': 3600.0}
+  >>> get_exposure_cards("1h;5h")
+  {'EXPTIME': 3600.0, 'EXPTIM1': 3600.0, 'EXPTIM2': 18000.0}
+  """
+  exptimes = parse_exposure_times(raw_exp_times)
+  if len(exptimes)==1:
+    return {"EXPTIME": exptimes[0]}
+  else:
+    retval = {"EXPTIME": exptimes[0]}
+    retval.update(dict(
+      (f"EXPTIM{n+1}", val) for n, val in enumerate(exptimes)))
+    return retval
+
+
+def reformat_dec(raw_dec):
+  """
+  returns declination in the format "dd:mm:ss".
+
+  >>> reformat_dec("29.06")
+  '29:03:36'
+  >>> reformat_dec("-23.30")
+  '-23:18:00'
+  >>> reformat_dec("50 41 45")
+  '50:41:45'
+  >>> reformat_dec("-01 28 02")
+  >>> reformat_dec("-01 28")
+  """
+  if "." in raw_dec:
+    return api.degToDms(float(raw_dec), sepChar=":")
+  else:
+    return raw_dec.replace(" ", ":")
+
+
 def run_tests(*args):
   """
   runs all doctests and exits the program.
@@ -142,8 +197,6 @@ class PAHeaderAdder(api.HeaderProcessor):
 
     #obj type
 
-    #exptimen
-    exp = parse_exposure_times(thismeta["EXPTIME"])
     #numexp
 
     #observat
@@ -154,25 +207,16 @@ class PAHeaderAdder(api.HeaderProcessor):
     siteelev = 1450
 
     #telescope
-#    tel_dict = {"50cm менисковый телескоп Максутова":"Wide aperture Maksutov meniscus telescope with main mirror 50 cm" "Большой Шмидт": "Schmidt telescope (large camera)"}
-    if thismeta["TELESCOPE"] == thismeta["TELESCOPE"]:
-      telescope = tel_dict[thismeta["TELESCOPE"]]
-    else:
-      telescope = "unknown"
+    telescope = "unknown"
+    if thismeta["TELESCOPE"]:
+      telescope = TELESCOPE_LATIN[thismeta["TELESCOPE"]]
 
-    #foclen
-    foclen_dic = {"Wide aperture Maksutov meniscus telescope with main mirror 50 cm":1.2,"Schmidt telescope (large camera)":0.773,"Schmidt telescope (small camera)":0.17, "unknown":0}
-    foclen = foclen_dic[telescope]
+    foclen = foclen_dic.get(telescope)
     
-    #observer
-    observers_dict = {'Рожковский Д.А.': 'Rozhkovskij D.A.', 'Торопова Т.П.':'Tropova T.P.', 
-                  'Городецкий Д.И.':'Gordetskij D.I.', 'Глушков Ю.И.':'Glushkovskij Yu.I.','Торопова Т.П.  Рожковский Д.А.': 'Tropova T.P., Rozhkovskij D.A.',
-                  'Рожковский Д.А., Торопова Т.П.' : 'Rozhkovskij D.A., Tropova T.P.', 'Рожковский Д.А., Павлова Л.А.' : 'Rozhkovskij D.A., Pavlova L.A.',
-                  'Карягина З.В.':'Karyagina Z.V.', 'Матягин В.С.': 'Matyagin V.S.', 'Павлова Л.А':'Pavlova L.A.', 'Гаврилов':'Gavrilov', 
-                  'Курчаков А.В.':'Kurchakov A.V.','Рожковский Д.А.   Городецкий Д.И.':'Rozhkovskij D.A.   Gordetskij D.I.','Солодовников В.В.':'Solodovnikov V.V.'}
+    observer = OBSERVERS_LATIN[thismeta["OBSERVER"]]
 
-    observer = observers_dict[thismeta["OBSERVER"]]
-
+    variable_arguments = get_exposure_cards(thismeta["EXPTIME"])
+    # variable_arguments.update(...)
 
     return fitstricks.makeHeaderFromTemplate(
       fitstricks.WFPDB_TEMPLATE,
@@ -181,9 +225,10 @@ class PAHeaderAdder(api.HeaderProcessor):
       DEC_ORIG=formatted_dec,
 #      OBSERVER=thismeta["OBSERVER"],
       OBJECT=cleaned_object,
-			EXPTIM=exp
-			SCANAUTH="Shomshekova S., Umirbayeva A., Moshkina S.",
-      ORIGIN="Contant")
+      EXPTIM=exptime,
+      SCANAUTH="Shomshekova S., Umirbayeva A., Moshkina S.",
+      ORIGIN="Contant",
+      **variable_arguments)
 
 
 if __name__=="__main__":
