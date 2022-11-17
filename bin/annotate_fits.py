@@ -41,39 +41,39 @@ OBSERVERS_LATIN = {
 
 
 def parse_single_time(raw_time):
-  """returns seconds of time for an h-m-s time string.
+	"""returns seconds of time for an h-m-s time string.
 
-  Here is the syntax supported by the function.
+	Here is the syntax supported by the function.
 
-  >>> parse_single_time("1h")
-  3600.0
-  >>> parse_single_time("4h30m")
-  16200.0
-  >>> parse_single_time("1h30m20s")
-  5420.0
-  >>> parse_single_time("20m")
-  1200.0
-  >>> parse_single_time("10.5m")
-  630.0
-  >>> parse_single_time("1m10s")
-  70.0
-  >>> parse_single_time("15s")
-  15.0
-  >>> parse_single_time("s23m")
-  Traceback (most recent call last):
-  ValueError: Cannot understand time 's23m'
-  """
-  mat = re.match(
-    r"^(?P<hours>\d+(?:\.\d+)?h)?"
-    r"(?P<minutes>\d+(?:\.\d+)?m)?"
-    r"(?P<seconds>\d+(?:\.\d+)?s)?$", raw_time)
-  if mat is None:
-    raise ValueError(f"Cannot understand time '{raw_time}'")
-  parts = mat.groupdict()
+	>>> parse_single_time("1h")
+	3600.0
+	>>> parse_single_time("4h30m")
+	16200.0
+	>>> parse_single_time("1h30m20s")
+	5420.0
+	>>> parse_single_time("20m")
+	1200.0
+	>>> parse_single_time("10.5m")
+	630.0
+	>>> parse_single_time("1m10s")
+	70.0
+	>>> parse_single_time("15s")
+	15.0
+	>>> parse_single_time("s23m")
+	Traceback (most recent call last):
+	ValueError: Cannot understand time 's23m'
+	"""
+	mat = re.match(
+		r"^(?P<hours>\d+(?:\.\d+)?h)?"
+ 		r"(?P<minutes>\d+(?:\.\d+)?m)?"
+		r"(?P<seconds>\d+(?:\.\d+)?s)?$", raw_time)
+	if mat is None:
+		raise ValueError(f"Cannot understand time '{raw_time}'")
+	parts = mat.groupdict()
 
-  return (float((parts["hours"] or "0h")[:-1])*3600
-    + float((parts["minutes"] or "0m")[:-1])*60
-    + float((parts["seconds"] or "0s")[:-1]))
+	return (float((parts["hours"] or "0h")[:-1])*3600
+		+ float((parts["minutes"] or "0m")[:-1])*60
+		+ float((parts["seconds"] or "0s")[:-1]))
   
 
 def parse_exposure_times(raw_exp_times):
@@ -138,19 +138,19 @@ def reformat_one_tm(raw_time):
 	if "m" not in raw_time: #we have values like "1h23" and patern doesn't work with it so we add "m" manually
 		raw_time = raw_time+"m"
 	mat = re.match(
-    r"^(?P<hours>\d+(?:\.\d+)?h)?"
-    r"(?P<minutes>\d+(?:\.\d+)?m)?"
-    r"(?P<seconds>\d+(?:\.\d+)?s)?$", raw_time)
-  if mat is None:
-    raise ValueError(f"Cannot understand time '{raw_time}'")
-  parts = mat.groupdict()
+		r"^(?P<hours>\d+(?:\.\d+)?h)?"
+		r"(?P<minutes>\d+(?:\.\d+)?m)?"
+		r"(?P<seconds>\d+(?:\.\d+)?s)?$", raw_time)
+	if mat is None:
+		raise ValueError(f"Cannot understand time '{raw_time}'")
+	parts = mat.groupdict()
 	for key in parts.keys():
 		if parts[key]:
 			parts[key] = add_zero(parts[key])
 	if parts["second"]:
-		return f"{parts["hours"]}:{parts["minutes"]}:{parts["seconds"]}"
+		return "{}:{}:{}".format(parts["hours"],parts["minutes"],parts["seconds"])
 	else:	
-		return f"{parts["hours"]}:{parts["minutes"]}"	
+		return "{}:{}".format(parts["hours"],parts["minutes"])	
 
 
 def reformat_time(raw_time):
@@ -171,14 +171,14 @@ def time_lt(raw_time):
 	"""
 	returns local time of start/end of observations in format "LT hh:mm:ss"
 	"""
-	return 'LT '+ time for time in reformat_time(raw_time)
+	return ['LT '+ time for time in reformat_time(raw_time)]
 
 
 def time_lst(raw_time):
 	"""
 	returns local sidereal time of start/end of observations in format "LST hh:mm:ss"
 	"""
-	return 'LST '+ time for time in reformat_time(raw_time)
+	return ['LST '+ time for time in reformat_time(raw_time)]
 
 
 def reformat_dec(raw_dec):
@@ -234,17 +234,17 @@ def reformat_ra(row_ra):
   >>> reformat_dec("01 28")
 	'01:28'
 	"""	
-  if "h" in raw_ra:
+	if "h" in raw_ra:
 		mat = re.match(
   	  r"^(?P<hours>\d+(?:\.\d+)?h)?"
     	r"(?P<minutes>\d+(?:\.\d+)?m)?"
     	r"(?P<seconds>\d+(?:\.\d+)?s)?$", raw_ra)
-  	if mat is None:
-    	raise ValueError(f"Cannot understand time '{raw_ra}'")
-  	parts = mat.groupdict()   
+		if mat is None:
+			raise ValueError(f"Cannot understand time '{raw_ra}'")
+		parts = mat.groupdict()   
 		return (pats["hours"][:-1] or '00') +':' + (pats["minutes"][:-1] or '00') + ':' + (pats["seconds"][:-1] or '00')
-  else:
-    return raw_dec.replace(" ", ":")
+	else:
+		return raw_dec.replace(" ", ":")
 
 
 def ra_to_deg(raw_ra):
@@ -272,7 +272,7 @@ def check_year(raw_date):
 	else:
 		return f'{date_split[0]}.{date_split[1]}.19{date_split[2]}'
 
-def parce_one_date(raw_date)
+def parce_one_date(raw_date):
 	"""
 	returns one date only (evining day, not exactly observation moment).
  
@@ -350,52 +350,52 @@ def run_tests(*args):
 
 
 class PAHeaderAdder(api.HeaderProcessor):
-  @staticmethod
-  def addOptions(optParser):
-    api.FileProcessor.addOptions(optParser)
-    optParser.add_option("--test", help="Run unit tests, then exit",
-      action="callback", callback=run_tests)
+	@staticmethod
+	def addOptions(optParser):
+		api.FileProcessor.addOptions(optParser)
+		optParser.add_option("--test", help="Run unit tests, then exit",
+			action="callback", callback=run_tests)
 
-  def _createAuxiliaries(self, dd):
-    logs_dir = os.path.join(
-      dd.rd.resdir, "logbook")
-    recs = []
+	def _createAuxiliaries(self, dd):
+		logs_dir = os.path.join(
+			dd.rd.resdir, "logbook")
+		recs = []
 
-    for src_f in glob.glob(logs_dir+"/*.csv"):
-      with open(src_f, "r", encoding="utf-8") as f:
-        rdr = csv.DictReader(f)
-        desired_keys = dict(
-          (n, (n or "EMPTY").split()[0]) for n in rdr.fieldnames)
-        source_key = os.path.basename(src_f).split(".")[0]
+		for src_f in glob.glob(logs_dir+"/*.csv"):
+			with open(src_f, "r", encoding="utf-8") as f:
+				rdr = csv.DictReader(f)
+				desired_keys = dict(
+					(n, (n or "EMPTY").split()[0]) for n in rdr.fieldnames)
+				source_key = os.path.basename(src_f).split(".")[0]
 
-        for rec in rdr:
-          new_rec = {
-            "source-file": source_key}
-          for k, v in rec.items():
-            new_key = desired_keys[k]
-            if new_key=="Идентификационный":
-              new_key = "ID"
-            new_rec[new_key] = v
-          recs.append(new_rec)
+				for rec in rdr:
+					new_rec = {
+						"source-file": source_key}
+					for k, v in rec.items():
+						new_key = desired_keys[k]
+						if new_key=="Идентификационный":
+							new_key = "ID"
+					new_rec[new_key] = v
+					recs.append(new_rec)
 
-    self.platemeta = dict(
-      (rec["ID"], rec) for rec in recs)
+		self.platemeta = dict(
+			(rec["ID"], rec) for rec in recs)
 
-  def _isProcessed(self, srcName):
-    return os.path.exists(srcName+".hdr")
+	def _isProcessed(self, srcName):
+		return os.path.exists(srcName+".hdr")
 
-  def _mungeHeader(self, srcName, hdr):
-    plateid = srcName.split(".")[-2].split("_")[-1]
-    thismeta = self.platemeta[plateid]
+	def _mungeHeader(self, srcName, hdr):
+		plateid = srcName.split(".")[-2].split("_")[-1]
+		thismeta = self.platemeta[plateid]
 
 #    mat = re.match(r"(\d\d)h(\d\d)m$", thismeta["RA"])
 #    formatted_ra = "{}:{}".format(mat.group(1), mat.group(2))
 #    mat = re.match(r"(\d\d)\.(\d\d)$", thismeta["DEC"])
 #    formatted_dec = "{}:{}".format(mat.group(1), mat.group(2))
 
-    cleaned_object = re.sub("[^ -~]+", "", thismeta["OBJECT"])
+		cleaned_object = re.sub("[^ -~]+", "", thismeta["OBJECT"])
 
-    dateorig = parce_date(thismeta["DATEOBS"])
+		dateorig = parce_date(thismeta["DATEOBS"])
 
     #time start
 		tms = "unknown"
@@ -415,47 +415,47 @@ class PAHeaderAdder(api.HeaderProcessor):
 			
     #obj_type = thismeta["OBJTYPE"] #we will add the column with data later
 
-    numexp=len(parse_exposure_times(thismeta["EXPTIME"]))
+		numexp=len(parse_exposure_times(thismeta["EXPTIME"]))
 
     #observat
-    observatory = "Fesenkov Astrophysical Institute"
-    sitename = "https://www.fai.kz"
-    sitelong = 43.17667
-    sitelat = 76.96611
-    siteelev = 1450
+		observatory = "Fesenkov Astrophysical Institute"
+		sitename = "https://www.fai.kz"
+		sitelong = 43.17667
+		sitelat = 76.96611
+		siteelev = 1450
 
     #telescope
-    telescope = "unknown"
-    if thismeta["TELESCOPE"]:
-      telescope = TELESCOPE_LATIN[thismeta["TELESCOPE"]]
+		telescope = "unknown"
+		if thismeta["TELESCOPE"]:
+			telescope = TELESCOPE_LATIN[thismeta["TELESCOPE"]]
 
-    foclen = foclen_dic.get(telescope)
+		foclen = foclen_dic.get(telescope)
     
-    observer = OBSERVERS_LATIN[thismeta["OBSERVER"]]
+		observer = OBSERVERS_LATIN[thismeta["OBSERVER"]]
 
-    variable_arguments = get_exposure_cards(thismeta["EXPTIME"])
+		variable_arguments = get_exposure_cards(thismeta["EXPTIME"])
     # variable_arguments.update(...)
 
-    return fitstricks.makeHeaderFromTemplate(
-      fitstricks.WFPDB_TEMPLATE,
-      originalHeader=hdr,
+		return fitstricks.makeHeaderFromTemplate(
+			fitstricks.WFPDB_TEMPLATE,
+			originalHeader=hdr,
 			DATEORIG=dateorig,
 #      RA_ORIG=formatted_ra,
 #      DEC_ORIG=formatted_dec,
-      RA_ORIG=thismeta["RA"],
-      DEC_ORIG=thismeta["DEC"],
-      RA=reformat_ra(thismeta["RA"]),
-      DEC=reformat_dec(thismeta["DEC"]),
+			RA_ORIG=thismeta["RA"],
+			DEC_ORIG=thismeta["DEC"],
+			RA=reformat_ra(thismeta["RA"]),
+			DEC=reformat_dec(thismeta["DEC"]),
 			RA_DEG = ra_to_deg(thismeta["RA"]),
 			DEC_DEG =  dec_to_deg(thismeta["DEC"]),
 #      OBSERVER=thismeta["OBSERVER"],
-      OBJECT=cleaned_object,
-      EXPTIM=exptime,
+			OBJECT=cleaned_object,
+			EXPTIM=exptime,
 			NUMEXP=numexp,
 			DATNAME="photographic plate",
-      SCANAUTH="Shomshekova S., Umirbayeva A., Moshkina S.",
-      ORIGIN="Contant",
-      **variable_arguments)
+			SCANAUTH="Shomshekova S., Umirbayeva A., Moshkina S.",
+			ORIGIN="Contant",
+			**variable_arguments)
 
 
 if __name__=="__main__":
