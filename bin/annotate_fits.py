@@ -118,12 +118,25 @@ def add_zero(num):
 	"""
 	returns "02" instead of "2"
 	here num is number in str format
+
+	>>> add_zero("2")
+  '02'
+	>>> add_zero("02")
+  '02'
+	>>> add_zero("")
+	'00'
 	"""
 	if len(str(num))<2:
 		return "0"+str(num)
 	else:
 		return str(num)
-	
+
+# TODO: compile the REs
+TIME_FORMATS = [
+	(r"(?P<hours>\d+(?:\.\d+)?h)$", "{hours}"),
+	(r"(?P<hours>\d+h)(?P<minutes>\d+(\.\d)?m?$", "{hours}:{minutes}"),
+...
+]
 
 def reformat_one_tm(raw_time):
 	"""	
@@ -135,11 +148,17 @@ def reformat_one_tm(raw_time):
 	>>> parcing_time(13h54)
 	'13:54'
 	"""
+	for pattern, format_string in TIME_FORMATS:
+		mat = re.match(pattern, raw_time)
+		if mat:
+			return format_string.format(**mat.groupdict())
+  raise ValueError(f"Not a valid time {raw_time}")
+
 	if "m" not in raw_time: #we have values like "1h23" and patern doesn't work with it so we add "m" manually
 		raw_time = raw_time+"m"
 	mat = re.match(
-		r"^(?P<hours>\d+(?:\.\d+)?h)?"
-		r"(?P<minutes>\d+(?:\.\d+)?m)?"
+		r"(?P<hours>\d+(?:\.\d+)?h)?"
+		r"(?P<minutes>\d+(?:\.\d+)?m?)?"
 		r"(?P<seconds>\d+(?:\.\d+)?s)?$", raw_time)
 	if mat is None:
 		raise ValueError(f"Cannot understand time '{raw_time}'")
@@ -450,7 +469,6 @@ class PAHeaderAdder(api.HeaderProcessor):
 			DEC_DEG =  dec_to_deg(thismeta["DEC"]),
 #      OBSERVER=thismeta["OBSERVER"],
 			OBJECT=cleaned_object,
-			EXPTIM=exptime,
 			NUMEXP=numexp,
 			DATNAME="photographic plate",
 			SCANAUTH="Shomshekova S., Umirbayeva A., Moshkina S.",
