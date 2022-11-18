@@ -139,7 +139,7 @@ TIME_FORMATS = [
   (r"(?P<hours>\d+h)(?P<minutes>\d+(\.m?\d)?m?)?$", "{hours}:{minutes}"), 
   (r"(?P<hours>)>\d+h)(?P<minutes>\d+?m?)(?P<seconds>\d+(\.s?\d)?s?)?$", "{hours}:{minutes}:{seconds}"),
 ]
-
+    
 def reformat_single_time(raw_time):
 	"""	
 	returns time in format hh:mm:ss
@@ -150,7 +150,7 @@ def reformat_single_time(raw_time):
 	>>> reformat_single_time(13h54)
   '13:54:00'
 	"""
-	for pattern, format_string in TIME_FORMATS:
+  for pattern, format_string in TIME_FORMATS:
 		mat = re.match(pattern, raw_time)
 		if mat:
 			return format_string.format(**mat.groupdict())
@@ -185,13 +185,11 @@ def get_time_lt(raw_times):
 	"""
 	return ['LT '+ time for time in reformat_time(raw_times)]
 
-
 def get_time_lst(raw_times):
 	"""
 	returns local sidereal time of start/end of observations in format "LST hh:mm:ss"
 	"""
 	return ['LST '+ time for time in reformat_time(raw_times)]
-
 
 def get_tms_cards_lst(raw_times):
   """
