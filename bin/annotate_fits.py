@@ -126,26 +126,33 @@ def add_zero(num):
 	>>> add_zero("")
 	'00'
 	"""
-	if len(str(num))<2:
+	if len(str(num))<2 and len(str(num))!=0:
 		return "0"+str(num)
-	else:
+  elif len(str(num))==0:
+    return "00"
+  else:
 		return str(num)
 
 # TODO: compile the REs
 TIME_FORMATS = [
 	(r"(?P<hours>\d+(?:\.\d+)?h)$", "{hours}"),
-	(r"(?P<hours>\d+h)(?P<minutes>\d+(\.\d)?m?$", "{hours}:{minutes}"),
-...
+	(r"(?P<hours>\d+(?:\.h\d+))$", "{hours}"),
+  (r"(?P<hours>\d+h)(?P<minutes>\d+(\.\d)?m?)?$", "{hours}:{minutes}"), 
+  (r"(?P<hours>\d+h)(?P<minutes>\d+(\.m\d))?$", "{hours}:{minutes}"),
+  (r"(?P<hours>)>\d+h)(?P<minutes>\d+?m?)$", "{hours}:{minutes}"),
+  (r"(?P<hours>)>\d+h)(?P<minutes>\d+?m?)(?P<seconds>\d+?s?)$", "{hours}:{minutes}:{seconds}"),
+  (r"(?P<hours>)>\d+h)(?P<minutes>\d+?m?)(?P<seconds>\d+(\.\d)?s?)$", "{hours}:{minutes}:{seconds}"),
+  (r"(?P<hours>)>\d+h)(?P<minutes>\d+?m?)(?P<seconds>\d+(\.s\d))?$", "{hours}:{minutes}:{seconds}"),
 ]
 
-def reformat_one_tm(raw_time):
+def reformat_single_time(raw_time):
 	"""	
 	returns time in format hh:mm:ss
-	>>> parcing_time(2h23m23s)
+	>>> reformat_single_time(2h23m23s)
 	'02:23:23'
-	>>> parcing_time(5h31m)
+	>>> reformat_single_time(5h31m)
 	'05:31'
-	>>> parcing_time(13h54)
+	>>> reformat_single_time(13h54)
 	'13:54'
 	"""
 	for pattern, format_string in TIME_FORMATS:
@@ -172,33 +179,110 @@ def reformat_one_tm(raw_time):
 		return "{}:{}".format(parts["hours"],parts["minutes"])	
 
 
-def reformat_time(raw_time):
+def reformat_time(raw_times):
 	"""
 	returns time in format hh:mm:ss
-	>>> parcing_time(2h23m23s;10h58m)
+	>>> reformat_time(2h23m23s;10h58m)
 	['02:23:23','10:58']
-	>>> parcing_time(5h31m;22h19m)
+	>>> reformat_time(5h31m;22h19m)
 	['05:31','22:19']
-	>>> parcing_time(1h54;13h49)
+	>>> reformat_time(1h54;13h49)
 	['01:54','13:49']
-	>>> parcing_time(2h23m23s;3h13m45s)
+	>>> reformat_time(2h23m23s;3h13m45s)
 	['02:23:23','03:13:45']
 	"""
-	return [reformat_one_tm(tm) for tm in raw_time.split(";")]
+	return [reformat_one_tm(time) for time in raw_times.split(";")]
 
-def time_lt(raw_time):
+def get_time_lt(raw_times):
 	"""
 	returns local time of start/end of observations in format "LT hh:mm:ss"
 	"""
-	return ['LT '+ time for time in reformat_time(raw_time)]
+	return ['LT '+ time for time in reformat_time(raw_times)]
 
 
-def time_lst(raw_time):
+def get_time_lst(raw_times):
 	"""
 	returns local sidereal time of start/end of observations in format "LST hh:mm:ss"
 	"""
-	return ['LST '+ time for time in reformat_time(raw_time)]
+	return ['LST '+ time for time in reformat_time(raw_times)]
 
+
+def get_tms_cards_lst(raw_times):
+  """
+  returns dict of keyword-value pairs for the FITS headers for our raw
+  local sidereal time of the start of observations.
+
+  >>> get_tms_cards("1h23m12s")
+  {'TMS-ORIG': 'LST 01:23:12'}
+  >>> get_tms_cards("13h23m;5h13;12h15m54s")
+  {'TMS-ORIG': 'LST 13:23', 'TMS-OR1': 'LST 13:23', 'TMS-OR2': 'LST 05:13','TMS-OR3': 'LST 12:15:54'}
+  """
+  times = time_lst(raw_times)
+  if len(times)==1:
+    return {"TMS-ORIG": times[0]}
+  else:
+    retval = {"TMS-ORIG": times[0]}
+    retval.update(dict(
+      (f"TMS-OR{n+1}", val) for n, val in enumerate(times)))
+    return retval
+
+def get_tms_cards_lt(raw_times):
+  """
+  returns dict of keyword-value pairs for the FITS headers for our raw
+  local time of the start of observations.
+
+  >>> get_tms_cards_lt("1h23m12s")
+  {'TMS-ORIG': 'LT 01:23:12'}
+  >>> get_tms_cards_lt("13h23m;5h13;12h15m54s")
+  {'TMS-ORIG': 'LT 13:23', 'TMS-OR1': 'LT 13:23', 'TMS-OR2': 'LT 05:13','TMS-OR3': 'LT 12:15:54'}
+  """
+  times = time_lt(raw_times)
+  if len(times)==1:
+    return {"TMS-ORIG": times[0]}
+  else:
+    retval = {"TMS-ORIG": times[0]}
+    retval.update(dict(
+      (f"TMS-OR{n+1}", val) for n, val in enumerate(times)))
+    return retval
+
+
+def get_tme_cards_lst(raw_times):
+  """
+  returns dict of keyword-value pairs for the FITS headers for our raw
+  local sidereal time of end of observations.
+
+  >>> get_tme_cards("1h23m12s")
+  {'TME-ORIG': 'LST 01:23:12'}
+  >>> get_tme_cards("13h23m;5h13;12h15m54s")
+  {'TME-ORIG': 'LST 13:23', 'TME-OR1': 'LST 13:23', 'TME-OR2': 'LST 05:13','TME-OR3': 'LST 12:15:54'}
+  """
+  times = time_lst(raw_times)
+  if len(times)==1:
+    return {"TME-ORIG": times[0]}
+  else:
+    retval = {"TME-ORIG": times[0]}
+    retval.update(dict(
+      (f"TME-OR{n+1}", val) for n, val in enumerate(times)))
+    return retval
+
+def get_tme_cards_lt(raw_times):
+  """
+  returns dict of keyword-value pairs for the FITS headers for our raw
+  local (decret) time of the end of observations.
+
+  >>> get_tme_cards_lt("1h23m12s")
+  {'TME-ORIG': 'LT 01:23:12'}
+  >>> get_tme_cards_lt("13h23m;5h13;12h15m54s")
+  {'TME-ORIG': 'LT 13:23', 'TME-OR1': 'LT 13:23', 'TME-OR2': 'LT 05:13','TME-OR3': 'LT 12:15:54'}
+  """
+  times = time_lt(raw_times)
+  if len(times)==1:
+    return {"TME-ORIG": times[0]}
+  else:
+    retval = {"TME-ORIG": times[0]}
+    retval.update(dict(
+      (f"TME-OR{n+1}", val) for n, val in enumerate(times)))
+    return retval
 
 def reformat_dec(raw_dec):
   """
@@ -291,29 +375,29 @@ def check_year(raw_date):
 	else:
 		return f'{date_split[0]}.{date_split[1]}.19{date_split[2]}'
 
-def parce_one_date(raw_date):
+def parse_one_date(raw_date):
 	"""
 	returns one date only (evining day, not exactly observation moment).
  
-	>>> parce_one_date('13.03.1956')
+	>>> parse_one_date('13.03.1956')
 	'13.03.1956'
-	>>> parce_one_date('13.04.76')
+	>>> parse_one_date('13.04.76')
  	'13.04.1976'
-	>>> parce_one_date('01-02.01.1964')
+	>>> parse_one_date('01-02.01.1964')
 	'01.01.1964' 
-	>>> parce_one_date('01-02.01.64')
+	>>> parse_one_date('01-02.01.64')
 	'01.01.1964'
- 	>>> parce_one_date('31.08-01.09.1967')
+ 	>>> parse_one_date('31.08-01.09.1967')
 	'31.08.1967'
- 	>>> parce_one_date('31.08-01.09.67')
+ 	>>> parse_one_date('31.08-01.09.67')
 	'31.08.1967'
- 	>>> parce_one_date('31.12.1965-01.01.1966')
+ 	>>> parse_one_date('31.12.1965-01.01.1966')
 	'31.12.1965'	
- 	>>> parce_one_date('31.12.65-01.01.66')
+ 	>>> parse_one_date('31.12.65-01.01.66')
 	'31.12.1965'
- 	>>> parce_one_date('31.12.65-01.01.1966')
+ 	>>> parse_one_date('31.12.65-01.01.1966')
 	'31.12.1965'
- 	>>> parce_one_date('31.12.1965-01.01.66')
+ 	>>> parse_one_date('31.12.1965-01.01.66')
 	'31.12.1965'
 	"""
 	if "-" not in raw_date:
@@ -331,34 +415,55 @@ def parce_one_date(raw_date):
 	return date
 
 
-def parce_date(raw_dates):
+def parise_date(raw_dates):
 	"""
-	returns evining date of observations.For more information look at parce_one_data()
+	returns evining date of observations.For more information look at pardse_one_data()
 
-	>>> parce_date('13.03.1956;14.03.1956')
+	>>> parse_date('13.03.1956;14.03.1956')
 	['13.03.1956','14.03.1956']
-	>>> parce_date('13.04.76;14.04.76')
+	>>> parse_date('13.04.76;14.04.76')
  	['13.04.1976','14.04.1976']
-	>>> parce_date('01-02.01.1964;02-03.01.1964')
+	>>> parse_date('01-02.01.1964;02-03.01.1964')
 	['01.01.1964','02.01.1964'] 
-	>>> parce_date('01-02.01.64;02-03.01.64')
+	>>> parse_date('01-02.01.64;02-03.01.64')
 	['01-02.01.1964','02-03.01.1964']
- 	>>> parce_date('31.08-01.09.1967;01-02.09.1967')
+ 	>>> parse_date('31.08-01.09.1967;01-02.09.1967')
 	['31.08.1967','01.09.1967']
- 	>>> parce_date('31.08-01.09.67;01-02.09.67')
+ 	>>> parse_date('31.08-01.09.67;01-02.09.67')
 	['31.08.1967','01.09.1967']
- 	>>> parce_date('31.12.1965-01.01.1966;01-02.01.1966')
+ 	>>> parse_date('31.12.1965-01.01.1966;01-02.01.1966')
 	['31.12.1965','01.01.1966']	
- 	>>> parce_date('31.12.65-01.01.66;01-02.01.66')
+ 	>>> parse_date('31.12.65-01.01.66;01-02.01.66')
 	['31.12.1965','01.01.66']
- 	>>> parce_date('31.12.65-01.01.1966;01-02.01.1966')
+ 	>>> parse_date('31.12.65-01.01.1966;01-02.01.1966')
 	['31.12.1965','01.01.1966']
- 	>>> parce_date('31.12.1965-01.01.66;01-02.01.1966')
+ 	>>> parse_date('31.12.1965-01.01.66;01-02.01.1966')
 	['31.12.1965','01.01.1966']
 	"""
-	return [parce_one_date(raw_date)
+	return [parse_one_date(raw_date)
 		for raw_date in raw_dates.split(";")]
 
+
+def get_date_cards(raw_dates):
+  """
+  returns dict of keyword-value pairs for the FITS headers for our raw
+  local sidereal time of the start of observations.
+
+  >>> get_date_cards('13.03.1956')
+  {'DATEORIG': '13.03.1956'}
+  >>> get_date_cards('31.12.1965-01.01.66;01-02.01.1966')
+  {'DATEORIG': '31.12.1965', 'DATEOR1': '31.12.1965', 'DATEOR2': '01.01.1966'}
+  >>> get_date_cards('01-02.01.1964')
+  {'DATEORIG': '01.01.1964'}
+  """
+  dates = parse_date(raw_dates)
+  if len(dates)==1:
+    return {"DATEORIG": dates[0]}
+  else:
+    retval = {"DATEORIG": dates[0]}
+    retval.update(dict(
+      (f"DATEOR{n+1}", val) for n, val in enumerate(dates)))
+    return retval
 
 def run_tests(*args):
   """
@@ -414,24 +519,8 @@ class PAHeaderAdder(api.HeaderProcessor):
 
 		cleaned_object = re.sub("[^ -~]+", "", thismeta["OBJECT"])
 
-		dateorig = parce_date(thismeta["DATEOBS"])
+		dateorig = parse_date(thismeta["DATEOBS"])
 
-    #time start
-		tms = "unknown"
-		if thismeta["TMS-LST"]:
-			tms = time_lst(thismeta["TMS-LST"])
-		else:
-			if thismeta["TMS-LT"]:
-				tms = time_lt(thismeta["TMS-LT"])
-			
-    #time end
-		tme = "unknown"
-		if thismeta["TME-LST"]:
-			tme = time_lst(thismeta["TME-LST"])
-		else:
-			if thismeta["TME-LT"]:
-				tme = time_lt(thismeta["TME-LT"])
-			
     #obj_type = thismeta["OBJTYPE"] #we will add the column with data later
 
 		numexp=len(parse_exposure_times(thismeta["EXPTIME"]))
@@ -453,24 +542,31 @@ class PAHeaderAdder(api.HeaderProcessor):
 		observer = OBSERVERS_LATIN[thismeta["OBSERVER"]]
 
 		variable_arguments = get_exposure_cards(thismeta["EXPTIME"])
-    # variable_arguments.update(...)
+    variable_arguments.update(get_dates_card(thismeta["DATE-OBS"])
 
-		return fitstricks.makeHeaderFromTemplate(
+    if thismeta["TMS-LST"]:
+      variable_arguments.update(get_tms_cards_lst(thismeta["TMS-LST"]))
+    elif thismeta["TMS-LST"]:
+      variable_arguments.update(get_tms_cards_lt(thismeta["TMS-LT"]))
+    
+    if thismeta["TME-LST"]:
+      variable_arguments.update(get_tme_cards_lst(thismeta["TME-LST"]))
+    else:
+      variable_arguments.update(get_tme_cards_lt(thismeta["TME-LST"]))
+		
+    return fitstricks.makeHeaderFromTemplate(
 			fitstricks.WFPDB_TEMPLATE,
 			originalHeader=hdr,
-			DATEORIG=dateorig,
 #      RA_ORIG=formatted_ra,
 #      DEC_ORIG=formatted_dec,
-			RA_ORIG=thismeta["RA"],
-			DEC_ORIG=thismeta["DEC"],
-			RA=reformat_ra(thismeta["RA"]),
-			DEC=reformat_dec(thismeta["DEC"]),
-			RA_DEG = ra_to_deg(thismeta["RA"]),
-			DEC_DEG =  dec_to_deg(thismeta["DEC"]),
-#      OBSERVER=thismeta["OBSERVER"],
+			RA_ORIG=reformat_ra(thismeta["RA"]),
+			DEC_ORIG=reformat_dec(thismeta["DEC"]),
+			RA_DEG=ra_to_deg(thismeta["RA"]),
+			DEC_DEG=dec_to_deg(thismeta["DEC"]),
+      OBSERVER=observer,
 			OBJECT=cleaned_object,
 			NUMEXP=numexp,
-			DATNAME="photographic plate",
+#			DATNAME=thismeta["DATNAME"]#we will add the corresponding column later
 			SCANAUTH="Shomshekova S., Umirbayeva A., Moshkina S.",
 			ORIGIN="Contant",
 			**variable_arguments)
