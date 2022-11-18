@@ -135,14 +135,9 @@ def add_zero(num):
 
 # TODO: compile the REs
 TIME_FORMATS = [
-	(r"(?P<hours>\d+(?:\.\d+)?h)$", "{hours}"),
-	(r"(?P<hours>\d+(?:\.h\d+))$", "{hours}"),
-  (r"(?P<hours>\d+h)(?P<minutes>\d+(\.\d)?m?)?$", "{hours}:{minutes}"), 
-  (r"(?P<hours>\d+h)(?P<minutes>\d+(\.m\d))?$", "{hours}:{minutes}"),
-  (r"(?P<hours>)>\d+h)(?P<minutes>\d+?m?)$", "{hours}:{minutes}"),
-  (r"(?P<hours>)>\d+h)(?P<minutes>\d+?m?)(?P<seconds>\d+?s?)$", "{hours}:{minutes}:{seconds}"),
-  (r"(?P<hours>)>\d+h)(?P<minutes>\d+?m?)(?P<seconds>\d+(\.\d)?s?)$", "{hours}:{minutes}:{seconds}"),
-  (r"(?P<hours>)>\d+h)(?P<minutes>\d+?m?)(?P<seconds>\d+(\.s\d))?$", "{hours}:{minutes}:{seconds}"),
+	(r"(?P<hours>\d+(?:\.h?\d+)?h?)$", "{hours}"),
+  (r"(?P<hours>\d+h)(?P<minutes>\d+(\.m?\d)?m?)?$", "{hours}:{minutes}"), 
+  (r"(?P<hours>)>\d+h)(?P<minutes>\d+?m?)(?P<seconds>\d+(\.s?\d)?s?)?$", "{hours}:{minutes}:{seconds}"),
 ]
 
 def reformat_single_time(raw_time):
@@ -151,9 +146,9 @@ def reformat_single_time(raw_time):
 	>>> reformat_single_time(2h23m23s)
 	'02:23:23'
 	>>> reformat_single_time(5h31m)
-	'05:31'
+  '05:31:00'
 	>>> reformat_single_time(13h54)
-	'13:54'
+  '13:54:00'
 	"""
 	for pattern, format_string in TIME_FORMATS:
 		mat = re.match(pattern, raw_time)
@@ -161,15 +156,6 @@ def reformat_single_time(raw_time):
 			return format_string.format(**mat.groupdict())
   raise ValueError(f"Not a valid time {raw_time}")
 
-	if "m" not in raw_time: #we have values like "1h23" and patern doesn't work with it so we add "m" manually
-		raw_time = raw_time+"m"
-	mat = re.match(
-		r"(?P<hours>\d+(?:\.\d+)?h)?"
-		r"(?P<minutes>\d+(?:\.\d+)?m?)?"
-		r"(?P<seconds>\d+(?:\.\d+)?s)?$", raw_time)
-	if mat is None:
-		raise ValueError(f"Cannot understand time '{raw_time}'")
-	parts = mat.groupdict()
 	for key in parts.keys():
 		if parts[key]:
 			parts[key] = add_zero(parts[key])
@@ -185,9 +171,9 @@ def reformat_time(raw_times):
 	>>> reformat_time(2h23m23s;10h58m)
 	['02:23:23','10:58']
 	>>> reformat_time(5h31m;22h19m)
-	['05:31','22:19']
+  ['05:31:00','22:19:00']
 	>>> reformat_time(1h54;13h49)
-	['01:54','13:49']
+  ['01:54:00','13:49:00']
 	>>> reformat_time(2h23m23s;3h13m45s)
 	['02:23:23','03:13:45']
 	"""
@@ -215,7 +201,7 @@ def get_tms_cards_lst(raw_times):
   >>> get_tms_cards("1h23m12s")
   {'TMS-ORIG': 'LST 01:23:12'}
   >>> get_tms_cards("13h23m;5h13;12h15m54s")
-  {'TMS-ORIG': 'LST 13:23', 'TMS-OR1': 'LST 13:23', 'TMS-OR2': 'LST 05:13','TMS-OR3': 'LST 12:15:54'}
+  {'TMS-ORIG': 'LST 13:23:00', 'TMS-OR1': 'LST 13:23:00', 'TMS-OR2': 'LST 05:13:00','TMS-OR3': 'LST 12:15:54'}
   """
   times = time_lst(raw_times)
   if len(times)==1:
@@ -234,7 +220,7 @@ def get_tms_cards_lt(raw_times):
   >>> get_tms_cards_lt("1h23m12s")
   {'TMS-ORIG': 'LT 01:23:12'}
   >>> get_tms_cards_lt("13h23m;5h13;12h15m54s")
-  {'TMS-ORIG': 'LT 13:23', 'TMS-OR1': 'LT 13:23', 'TMS-OR2': 'LT 05:13','TMS-OR3': 'LT 12:15:54'}
+  {'TMS-ORIG': 'LT 13:23:00', 'TMS-OR1': 'LT 13:23:00', 'TMS-OR2': 'LT 05:13:00','TMS-OR3': 'LT 12:15:54'}
   """
   times = time_lt(raw_times)
   if len(times)==1:
@@ -254,7 +240,7 @@ def get_tme_cards_lst(raw_times):
   >>> get_tme_cards("1h23m12s")
   {'TME-ORIG': 'LST 01:23:12'}
   >>> get_tme_cards("13h23m;5h13;12h15m54s")
-  {'TME-ORIG': 'LST 13:23', 'TME-OR1': 'LST 13:23', 'TME-OR2': 'LST 05:13','TME-OR3': 'LST 12:15:54'}
+  {'TME-ORIG': 'LST 13:23:00', 'TME-OR1': 'LST 13:23:00', 'TME-OR2': 'LST 05:13:00','TME-OR3': 'LST 12:15:54'}
   """
   times = time_lst(raw_times)
   if len(times)==1:
@@ -566,7 +552,7 @@ class PAHeaderAdder(api.HeaderProcessor):
       OBSERVER=observer,
 			OBJECT=cleaned_object,
 			NUMEXP=numexp,
-#			DATNAME=thismeta["DATNAME"]#we will add the corresponding column later
+#	DATNAME=thismeta["DATNAME"]#we will add the corresponding column later
 			SCANAUTH="Shomshekova S., Umirbayeva A., Moshkina S.",
 			ORIGIN="Contant",
 			**variable_arguments)
