@@ -12,7 +12,15 @@ import sys
 from gavo.helpers import fitstricks
 from gavo import api
 
+from gavo.helpers import anet
+
 import numpy as np
+
+anet.anetPath = "/usr/bin"
+anet.netIndexPath = "/var/share/astrometry-indexes"
+# Homework for Markus!!!!
+anet.solverBin = os.path.join(anet.anetPath, "solve-field")
+
 
 TELESCOPE_LATIN = {
   "50cm менисковый телескоп Максутова":
@@ -45,39 +53,39 @@ OBSERVERS_LATIN = {
 
 
 def parse_single_time(raw_time):
-	"""returns seconds of time for an h-m-s time string.
+  """returns seconds of time for an h-m-s time string.
 
-	Here is the syntax supported by the function.
+  Here is the syntax supported by the function.
 
-	>>> parse_single_time("1h")
-	3600.0
-	>>> parse_single_time("4h30m")
-	16200.0
-	>>> parse_single_time("1h30m20s")
-	5420.0
-	>>> parse_single_time("20m")
-	1200.0
-	>>> parse_single_time("10.5m")
-	630.0
-	>>> parse_single_time("1m10s")
-	70.0
-	>>> parse_single_time("15s")
-	15.0
-	>>> parse_single_time("s23m")
-	Traceback (most recent call last):
-	ValueError: Cannot understand time 's23m'
-	"""
-	mat = re.match(
-		r"^(?P<hours>\d+(?:\.\d+)?h)?"
- 		r"(?P<minutes>\d+(?:\.\d+)?m)?"
-		r"(?P<seconds>\d+(?:\.\d+)?s)?$", raw_time)
-	if mat is None:
-		raise ValueError(f"Cannot understand time '{raw_time}'")
-	parts = mat.groupdict()
+  >>> parse_single_time("1h")
+  3600.0
+  >>> parse_single_time("4h30m")
+  16200.0
+  >>> parse_single_time("1h30m20s")
+  5420.0
+  >>> parse_single_time("20m")
+  1200.0
+  >>> parse_single_time("10.5m")
+  630.0
+  >>> parse_single_time("1m10s")
+  70.0
+  >>> parse_single_time("15s")
+  15.0
+  >>> parse_single_time("s23m")
+  Traceback (most recent call last):
+  ValueError: Cannot understand time 's23m'
+  """
+  mat = re.match(
+    r"^(?P<hours>\d+(?:\.\d+)?h)?"
+     r"(?P<minutes>\d+(?:\.\d+)?m)?"
+    r"(?P<seconds>\d+(?:\.\d+)?s)?$", raw_time)
+  if mat is None:
+    raise ValueError(f"Cannot understand time '{raw_time}'")
+  parts = mat.groupdict()
 
-	return (float((parts["hours"] or "0h")[:-1])*3600
-		+ float((parts["minutes"] or "0m")[:-1])*60
-		+ float((parts["seconds"] or "0s")[:-1]))
+  return (float((parts["hours"] or "0h")[:-1])*3600
+    + float((parts["minutes"] or "0m")[:-1])*60
+    + float((parts["seconds"] or "0s")[:-1]))
   
 
 def parse_exposure_times(raw_exp_times):
@@ -139,13 +147,13 @@ def add_zero(num):
 
 # TODO: compile the REs
 TIME_FORMATS = [
-	(r"(?P<hours>\d+(?:\.h?\d+)?h?)$", "{hours}"),
+  (r"(?P<hours>\d+(?:\.h?\d+)?h?)$", "{hours}"),
   (r"(?P<hours>\d+h)(?P<minutes>\d+(\.m?\d)?m?)?$", "{hours}:{minutes}"), 
   (r"(?P<hours>)>\d+h)(?P<minutes>\d+?m?)(?P<seconds>\d+(\.s?\d)?s?)?$", "{hours}:{minutes}:{seconds}"),
 ]
     
 def reformat_single_time(raw_time):
-  """	
+  """  
   returns time in format hh:mm:ss
   >>> reformat_single_time(2h23m23s)
   '02:23:23'
@@ -165,35 +173,35 @@ def reformat_single_time(raw_time):
       parts[key] = add_zero(parts[key])
   if parts["second"]:
     return "{}:{}:{}".format(parts["hours"],parts["minutes"],parts["seconds"])
-  else:	
-    return "{}:{}".format(parts["hours"],parts["minutes"])	
+  else:  
+    return "{}:{}".format(parts["hours"],parts["minutes"])  
 
 
 def reformat_time(raw_times):
-	"""
-	returns time in format hh:mm:ss
-	>>> reformat_time(2h23m23s;10h58m)
-	['02:23:23','10:58']
-	>>> reformat_time(5h31m;22h19m)
+  """
+  returns time in format hh:mm:ss
+  >>> reformat_time(2h23m23s;10h58m)
+  ['02:23:23','10:58']
+  >>> reformat_time(5h31m;22h19m)
   ['05:31:00','22:19:00']
-	>>> reformat_time(1h54;13h49)
+  >>> reformat_time(1h54;13h49)
   ['01:54:00','13:49:00']
-	>>> reformat_time(2h23m23s;3h13m45s)
-	['02:23:23','03:13:45']
-	"""
-	return [reformat_one_tm(time) for time in raw_times.split(";")]
+  >>> reformat_time(2h23m23s;3h13m45s)
+  ['02:23:23','03:13:45']
+  """
+  return [reformat_one_tm(time) for time in raw_times.split(";")]
 
 def get_time_lt(raw_times):
-	"""
-	returns local time of start/end of observations in format "LT hh:mm:ss"
-	"""
-	return ['LT '+ time for time in reformat_time(raw_times)]
+  """
+  returns local time of start/end of observations in format "LT hh:mm:ss"
+  """
+  return ['LT '+ time for time in reformat_time(raw_times)]
 
 def get_time_lst(raw_times):
-	"""
-	returns local sidereal time of start/end of observations in format "LST hh:mm:ss"
-	"""
-	return ['LST '+ time for time in reformat_time(raw_times)]
+  """
+  returns local sidereal time of start/end of observations in format "LST hh:mm:ss"
+  """
+  return ['LST '+ time for time in reformat_time(raw_times)]
 
 def get_tms_cards_lst(raw_times):
   """
@@ -283,10 +291,10 @@ def reformat_dec(raw_dec):
   >>> reformat_dec("50 41 45")
   '50:41:45'
   >>> reformat_dec("-01 28 02")
-	'-01:28:02'
+  '-01:28:02'
   >>> reformat_dec("-01 28")
   '-01:28'
-	"""
+  """
 
   if "." in raw_dec:
     return api.degToDms(float(raw_dec), sepChar=":")
@@ -294,8 +302,8 @@ def reformat_dec(raw_dec):
     return raw_dec.replace(" ", ":")
 
 def dec_to_deg(raw_dec):
-	"""
-	returns declanation as float in degrees.
+  """
+  returns declanation as float in degrees.
 
   >>> dec_to_deg("29.06")
   29.06
@@ -304,18 +312,18 @@ def dec_to_deg(raw_dec):
   >>> dec_to_deg("50 41 45")
   50.69583
   >>> dec_to_deg("-01 28 02")
-	-1.46722
+  -1.46722
   >>> dec_to_deg("-01 28")
   -1.46667
-	"""
+  """
 
-	format_dec = reformat_dec(raw_dec)
-	return api.dmsToDeg(format_deg,sepChar=":")
+  format_dec = reformat_dec(raw_dec)
+  return api.dmsToDeg(format_deg,sepChar=":")
 
 def reformat_ra(row_ra):
-	"""
-	returns right ascension in the format "hh:mm:ss"
-	
+  """
+  returns right ascension in the format "hh:mm:ss"
+  
   >>> reformat_ra("05 32 49")
   '05:32:49'
   >>> reformat_ra("05h33m")
@@ -323,24 +331,24 @@ def reformat_ra(row_ra):
   >>> reformat_ra("02h41m45s")
   '02:41:45'
   >>> reformat_dec("01 28")
-	'01:28'
-	"""	
-	if "h" in raw_ra:
-		mat = re.match(
-  	  r"^(?P<hours>\d+(?:\.\d+)?h)?"
-    	r"(?P<minutes>\d+(?:\.\d+)?m)?"
-    	r"(?P<seconds>\d+(?:\.\d+)?s)?$", raw_ra)
-		if mat is None:
-			raise ValueError(f"Cannot understand time '{raw_ra}'")
-		parts = mat.groupdict()   
-		return (pats["hours"][:-1] or '00') +':' + (pats["minutes"][:-1] or '00') + ':' + (pats["seconds"][:-1] or '00')
-	else:
-		return raw_dec.replace(" ", ":")
+  '01:28'
+  """  
+  if "h" in raw_ra:
+    mat = re.match(
+      r"^(?P<hours>\d+(?:\.\d+)?h)?"
+      r"(?P<minutes>\d+(?:\.\d+)?m)?"
+      r"(?P<seconds>\d+(?:\.\d+)?s)?$", raw_ra)
+    if mat is None:
+      raise ValueError(f"Cannot understand time '{raw_ra}'")
+    parts = mat.groupdict()   
+    return (pats["hours"][:-1] or '00') +':' + (pats["minutes"][:-1] or '00') + ':' + (pats["seconds"][:-1] or '00')
+  else:
+    return raw_dec.replace(" ", ":")
 
 
 def ra_to_deg(raw_ra):
-	"""
-	returns declanation as float in degrees.
+  """
+  returns declanation as float in degrees.
 
   >>> ra_to_deg("05 32 49")
   83.20417
@@ -349,87 +357,87 @@ def ra_to_deg(raw_ra):
   >>> ra_to_deg("02h41m45s")
   40.4375
   >>> ra_to_deg("01 28")
-	22
-	"""	
+  22
+  """  
 
-	format_ra = reformat_ra(raw_ra)
-	return api.hmsToDeg(format_ra,sepChar=":")
+  format_ra = reformat_ra(raw_ra)
+  return api.hmsToDeg(format_ra,sepChar=":")
 
 
 def check_year(raw_date):
-	date_split = raw_date.split(".")
-	if len(date_split[-1])==4:
-		return raw_date	
-	else:
-		return f'{date_split[0]}.{date_split[1]}.19{date_split[2]}'
+  date_split = raw_date.split(".")
+  if len(date_split[-1])==4:
+    return raw_date  
+  else:
+    return f'{date_split[0]}.{date_split[1]}.19{date_split[2]}'
 
 def parse_one_date(raw_date):
-	"""
-	returns one date only (evining day, not exactly observation moment).
+  """
+  returns one date only (evining day, not exactly observation moment).
  
-	>>> parse_one_date('13.03.1956')
-	'13.03.1956'
-	>>> parse_one_date('13.04.76')
- 	'13.04.1976'
-	>>> parse_one_date('01-02.01.1964')
-	'01.01.1964' 
-	>>> parse_one_date('01-02.01.64')
-	'01.01.1964'
- 	>>> parse_one_date('31.08-01.09.1967')
-	'31.08.1967'
- 	>>> parse_one_date('31.08-01.09.67')
-	'31.08.1967'
- 	>>> parse_one_date('31.12.1965-01.01.1966')
-	'31.12.1965'	
- 	>>> parse_one_date('31.12.65-01.01.66')
-	'31.12.1965'
- 	>>> parse_one_date('31.12.65-01.01.1966')
-	'31.12.1965'
- 	>>> parse_one_date('31.12.1965-01.01.66')
-	'31.12.1965'
-	"""
-	if "-" not in raw_date:
-		date = check_year(raw_date)	
-	else:
-		date_split = raw_date.split("-")
-		ch = date_split[0] 		
-		if len(ch)==2: #2 days
-			date = ch + check_year(date_split[1])[2:] 	
-		if len(ch)>2 and len(ch)<8: #2 months
-			date = ch + check_year(date_split[1])[5:]
-		if len(ch)>=8:	#2 years
-			date = year_check(ch)
+  >>> parse_one_date('13.03.1956')
+  '13.03.1956'
+  >>> parse_one_date('13.04.76')
+   '13.04.1976'
+  >>> parse_one_date('01-02.01.1964')
+  '01.01.1964' 
+  >>> parse_one_date('01-02.01.64')
+  '01.01.1964'
+   >>> parse_one_date('31.08-01.09.1967')
+  '31.08.1967'
+   >>> parse_one_date('31.08-01.09.67')
+  '31.08.1967'
+   >>> parse_one_date('31.12.1965-01.01.1966')
+  '31.12.1965'  
+   >>> parse_one_date('31.12.65-01.01.66')
+  '31.12.1965'
+   >>> parse_one_date('31.12.65-01.01.1966')
+  '31.12.1965'
+   >>> parse_one_date('31.12.1965-01.01.66')
+  '31.12.1965'
+  """
+  if "-" not in raw_date:
+    date = check_year(raw_date)  
+  else:
+    date_split = raw_date.split("-")
+    ch = date_split[0]     
+    if len(ch)==2: #2 days
+      date = ch + check_year(date_split[1])[2:]   
+    if len(ch)>2 and len(ch)<8: #2 months
+      date = ch + check_year(date_split[1])[5:]
+    if len(ch)>=8:  #2 years
+      date = year_check(ch)
 
-	return date
+  return date
 
 
 def parise_date(raw_dates):
-	"""
-	returns evining date of observations.For more information look at pardse_one_data()
+  """
+  returns evining date of observations.For more information look at pardse_one_data()
 
-	>>> parse_date('13.03.1956;14.03.1956')
-	['13.03.1956','14.03.1956']
-	>>> parse_date('13.04.76;14.04.76')
- 	['13.04.1976','14.04.1976']
-	>>> parse_date('01-02.01.1964;02-03.01.1964')
-	['01.01.1964','02.01.1964'] 
-	>>> parse_date('01-02.01.64;02-03.01.64')
-	['01-02.01.1964','02-03.01.1964']
- 	>>> parse_date('31.08-01.09.1967;01-02.09.1967')
-	['31.08.1967','01.09.1967']
- 	>>> parse_date('31.08-01.09.67;01-02.09.67')
-	['31.08.1967','01.09.1967']
- 	>>> parse_date('31.12.1965-01.01.1966;01-02.01.1966')
-	['31.12.1965','01.01.1966']	
- 	>>> parse_date('31.12.65-01.01.66;01-02.01.66')
-	['31.12.1965','01.01.66']
- 	>>> parse_date('31.12.65-01.01.1966;01-02.01.1966')
-	['31.12.1965','01.01.1966']
- 	>>> parse_date('31.12.1965-01.01.66;01-02.01.1966')
-	['31.12.1965','01.01.1966']
-	"""
-	return [parse_one_date(raw_date)
-		for raw_date in raw_dates.split(";")]
+  >>> parse_date('13.03.1956;14.03.1956')
+  ['13.03.1956','14.03.1956']
+  >>> parse_date('13.04.76;14.04.76')
+   ['13.04.1976','14.04.1976']
+  >>> parse_date('01-02.01.1964;02-03.01.1964')
+  ['01.01.1964','02.01.1964'] 
+  >>> parse_date('01-02.01.64;02-03.01.64')
+  ['01-02.01.1964','02-03.01.1964']
+   >>> parse_date('31.08-01.09.1967;01-02.09.1967')
+  ['31.08.1967','01.09.1967']
+   >>> parse_date('31.08-01.09.67;01-02.09.67')
+  ['31.08.1967','01.09.1967']
+   >>> parse_date('31.12.1965-01.01.1966;01-02.01.1966')
+  ['31.12.1965','01.01.1966']  
+   >>> parse_date('31.12.65-01.01.66;01-02.01.66')
+  ['31.12.1965','01.01.66']
+   >>> parse_date('31.12.65-01.01.1966;01-02.01.1966')
+  ['31.12.1965','01.01.1966']
+   >>> parse_date('31.12.1965-01.01.66;01-02.01.1966')
+  ['31.12.1965','01.01.1966']
+  """
+  return [parse_one_date(raw_date)
+    for raw_date in raw_dates.split(";")]
 
 
 def get_date_cards(raw_dates):
@@ -461,36 +469,47 @@ def run_tests(*args):
   sys.exit(doctest.testmod()[0])
 
 
-class PAHeaderAdder(api.HeaderProcessor):
-	@staticmethod
-	def addOptions(optParser):
-		api.FileProcessor.addOptions(optParser)
-		optParser.add_option("--test", help="Run unit tests, then exit",
-			action="callback", callback=run_tests)
+class PAHeaderAdder(api.AnetHeaderProcessor):
+  sp_total_timelimit = 60
+  sp_lower_pix = 2
+  sp_upper_pix = 4
+  sp_endob = 50
 
-	def _createAuxiliaries(self, dd):
-		logs_dir = os.path.join(
-			dd.rd.resdir, "logbook")
-		recs = []
+  sexControl = """
+    DETECT_MINAREA   30
+    DETECT_THRESH    3
+    SEEING_FWHM      1.2
+  """
 
-		for src_f in glob.glob(logs_dir+"/*.csv"):
-			with open(src_f, "r", encoding="utf-8") as f:
-				rdr = csv.DictReader(f)
-				desired_keys = dict(
-					(n, (n or "EMPTY").split()[0]) for n in rdr.fieldnames)
-				source_key = os.path.basename(src_f).split(".")[0]
+  @staticmethod
+  def addOptions(optParser):
+    api.AnetHeaderProcessor.addOptions(optParser)
+    optParser.add_option("--test", help="Run unit tests, then exit",
+      action="callback", callback=run_tests)
 
-				for rec in rdr:
-					new_rec = {
-						"source-file": source_key}
-					for k, v in rec.items():
-						new_key = desired_keys[k]
-						if new_key=="Идентификационный":
-							new_key = "ID"
+  def _createAuxiliaries(self, dd):
+    logs_dir = os.path.join(
+      dd.rd.resdir, "logbook")
+    recs = []
+
+    for src_f in glob.glob(logs_dir+"/*.csv"):
+      with open(src_f, "r", encoding="utf-8") as f:
+        rdr = csv.DictReader(f)
+        desired_keys = dict(
+          (n, (n or "EMPTY").split()[0]) for n in rdr.fieldnames)
+        source_key = os.path.basename(src_f).split(".")[0]
+
+        for rec in rdr:
+          new_rec = {
+            "source-file": source_key}
+          for k, v in rec.items():
+            new_key = desired_keys[k]
+            if new_key=="Идентификационный":
+              new_key = "ID"
               new_rec[new_key] = v
-					  recs.append(new_rec)
+            recs.append(new_rec)
 
-  self.platemeta = dict((rec["ID"], rec) for rec in recs)
+    self.platemeta = dict((rec["ID"], rec) for rec in recs)
 
   def _isProcessed(self, srcName):
     return os.path.exists(srcName+".hdr")
@@ -533,7 +552,7 @@ class PAHeaderAdder(api.HeaderProcessor):
     observer = OBSERVERS_LATIN[thismeta["OBSERVER"]]
 
     variable_arguments = get_exposure_cards(thismeta["EXPTIME"])
-    variable_arguments.update(get_dates_card(thismeta["DATE-OBS"])
+    variable_arguments.update(get_dates_card(thismeta["DATE-OBS"]))
 
     if thismeta["TMS-LST"]:
       variable_arguments.update(get_tms_cards_lst(thismeta["TMS-LST"]))
@@ -544,22 +563,22 @@ class PAHeaderAdder(api.HeaderProcessor):
       variable_arguments.update(get_tme_cards_lst(thismeta["TME-LST"]))
     else:
       variable_arguments.update(get_tme_cards_lt(thismeta["TME-LST"]))
-		
+    
     return fitstricks.makeHeaderFromTemplate(
-			fitstricks.WFPDB_TEMPLATE,
-			originalHeader=hdr,
+      fitstricks.WFPDB_TEMPLATE,
+      originalHeader=hdr,
 #      RA_ORIG=formatted_ra,
 #      DEC_ORIG=formatted_dec,
-			RA_ORIG=reformat_ra(thismeta["RA"]),
-			DEC_ORIG=reformat_dec(thismeta["DEC"]),
-			RA_DEG=ra_to_deg(thismeta["RA"]),
-			DEC_DEG=dec_to_deg(thismeta["DEC"]),
+      RA_ORIG=reformat_ra(thismeta["RA"]),
+      DEC_ORIG=reformat_dec(thismeta["DEC"]),
+      RA_DEG=ra_to_deg(thismeta["RA"]),
+      DEC_DEG=dec_to_deg(thismeta["DEC"]),
       OBSERVER=observer,
-			OBJECT=cleaned_object,
-			NUMEXP=numexp,
-#	DATNAME=thismeta["DATNAME"]#we will add the corresponding column later
-			SCANAUTH="Shomshekova S., Umirbayeva A., Moshkina S.",
-			ORIGIN="Contant",
+      OBJECT=cleaned_object,
+      NUMEXP=numexp,
+#  DATNAME=thismeta["DATNAME"]#we will add the corresponding column later
+      SCANAUTH="Shomshekova S., Umirbayeva A., Moshkina S.",
+      ORIGIN="Contant",
       FOCLEN=foclen,
       PLATESZ1=plate_size[0],
       PLATESZ2=plate_size[1],
@@ -567,8 +586,8 @@ class PAHeaderAdder(api.HeaderProcessor):
       FIELD2=field[1],
       MIR_DIAM=mirror_diameter,
       CP_DIAM=corr_plate_diameter,
-      SCANERS1=1200
-      SCANERS2=1200
+      SCANERS1=1200,
+      SCANERS2=1200,
       PRE_PROC="Cleaning from dust with a squirrel brush and from contamination from the glass (not an emulsion) with paper napkins",
       PID=thismeta["ID"],
       **variable_arguments)
