@@ -20,11 +20,11 @@ TELESCOPE_LATIN = {
   "Большой Шмидт": "Schmidt tellarge camera)",
   "Малый Шмидт": "Schmidt telesmall camera)"}
 
-    
-    TELESCOPE_PARAM_DIC = { #foclen[mm],pltsize[cm],field[deg],coorplate_diam[mm],mirror_diam[mm]
-  "Wide aperture Maksutov meniscus telescope with main mirror 50 cm":[1200,[9,9.8],[5.2,5.7],500,660],
-  "Schmidt telescope (large camera)": [773,[9,12],[6.2,9.9],397,np.NaN],
-  "Schmidt telescope (small camera)": [170,[3.3,3.3],[10,10],np.NaN,190]}
+    #foclen[mm],pltsize[cm],field[deg],coorplate_diam[mm],mirror_diam[mm] 
+TELESCOPE_PARAM_DIC = { 
+    "Wide aperture Maksutov meniscus telescope with main mirror 50 cm":[1200,[9,9.8],[5.2,5.7],500,660],
+    "Schmidt telescope (large camera)": [773,[9,12],[6.2,9.9],397,None],
+    "Schmidt telescope (small camera)": [170,[3.3,3.3],[10,10],None,190]}
     
 OBSERVERS_LATIN = {
   'Рожковский Д.А.': 'Rozhkovskij D.A.', 
@@ -119,23 +119,23 @@ def get_exposure_cards(raw_exp_times):
 
 
 def add_zero(num):
-	"""
-	returns "02" instead of "2"
-	here num is number in str format
-
-	>>> add_zero("2")
+  """
+  returns "02" instead of "2"
+  here num is number in str format
+  
+  >>> add_zero("2")
   '02'
-	>>> add_zero("02")
+  >>> add_zero("02")
   '02'
-	>>> add_zero("")
-	'00'
-	"""
-	if len(str(num))<2 and len(str(num))!=0:
-		return "0"+str(num)
+  >>> add_zero("")
+  '00'
+  """
+  if len(str(num))<2 and len(str(num))!=0:
+    return "0"+str(num)
   elif len(str(num))==0:
     return "00"
   else:
-		return str(num)
+    return str(num)
 
 # TODO: compile the REs
 TIME_FORMATS = [
@@ -145,28 +145,28 @@ TIME_FORMATS = [
 ]
     
 def reformat_single_time(raw_time):
-	"""	
-	returns time in format hh:mm:ss
-	>>> reformat_single_time(2h23m23s)
-	'02:23:23'
-	>>> reformat_single_time(5h31m)
+  """	
+  returns time in format hh:mm:ss
+  >>> reformat_single_time(2h23m23s)
+  '02:23:23'
+  >>> reformat_single_time(5h31m)
   '05:31:00'
-	>>> reformat_single_time(13h54)
+  >>> reformat_single_time(13h54)
   '13:54:00'
-	"""
+  """
   for pattern, format_string in TIME_FORMATS:
-		mat = re.match(pattern, raw_time)
-		if mat:
-			return format_string.format(**mat.groupdict())
+    mat = re.match(pattern, raw_time)
+    if mat:
+      return format_string.format(**mat.groupdict())
   raise ValueError(f"Not a valid time {raw_time}")
 
-	for key in parts.keys():
-		if parts[key]:
-			parts[key] = add_zero(parts[key])
-	if parts["second"]:
-		return "{}:{}:{}".format(parts["hours"],parts["minutes"],parts["seconds"])
-	else:	
-		return "{}:{}".format(parts["hours"],parts["minutes"])	
+  for key in parts.keys():
+    if parts[key]:
+      parts[key] = add_zero(parts[key])
+  if parts["second"]:
+    return "{}:{}:{}".format(parts["hours"],parts["minutes"],parts["seconds"])
+  else:	
+    return "{}:{}".format(parts["hours"],parts["minutes"])	
 
 
 def reformat_time(raw_times):
@@ -487,53 +487,52 @@ class PAHeaderAdder(api.HeaderProcessor):
 						new_key = desired_keys[k]
 						if new_key=="Идентификационный":
 							new_key = "ID"
-					new_rec[new_key] = v
-					recs.append(new_rec)
+              new_rec[new_key] = v
+					  recs.append(new_rec)
 
-		self.platemeta = dict(
-			(rec["ID"], rec) for rec in recs)
+  self.platemeta = dict((rec["ID"], rec) for rec in recs)
 
-	def _isProcessed(self, srcName):
-		return os.path.exists(srcName+".hdr")
+  def _isProcessed(self, srcName):
+    return os.path.exists(srcName+".hdr")
 
-	def _mungeHeader(self, srcName, hdr):
-		plateid = srcName.split(".")[-2].split("_")[-1]
-		thismeta = self.platemeta[plateid]
+  def _mungeHeader(self, srcName, hdr):
+    plateid = srcName.split(".")[-2].split("_")[-1]
+    thismeta = self.platemeta[plateid]
 
 #    mat = re.match(r"(\d\d)h(\d\d)m$", thismeta["RA"])
 #    formatted_ra = "{}:{}".format(mat.group(1), mat.group(2))
 #    mat = re.match(r"(\d\d)\.(\d\d)$", thismeta["DEC"])
 #    formatted_dec = "{}:{}".format(mat.group(1), mat.group(2))
 
-		cleaned_object = re.sub("[^ -~]+", "", thismeta["OBJECT"])
+    cleaned_object = re.sub("[^ -~]+", "", thismeta["OBJECT"])
 
-		dateorig = parse_date(thismeta["DATEOBS"])
+    dateorig = parse_date(thismeta["DATEOBS"])
 
     #obj_type = thismeta["OBJTYPE"] #we will add the column with data later
 
-		numexp=len(parse_exposure_times(thismeta["EXPTIME"]))
+    numexp=len(parse_exposure_times(thismeta["EXPTIME"]))
 
     #observat
-		observatory = "Fesenkov Astrophysical Institute"
-		sitename = "https://www.fai.kz"
-		sitelong = 43.17667
-		sitelat = 76.96611
-		siteelev = 1450
+    observatory = "Fesenkov Astrophysical Institute"
+    sitename = "https://www.fai.kz"
+    sitelong = 43.17667
+    sitelat = 76.96611
+    siteelev = 1450
 
     #telescope
-		telescope = "unknown"
-		if thismeta["TELESCOPE"]:
-			telescope = TELESCOPE_LATIN[thismeta["TELESCOPE"]]
+    telescope = "unknown"
+    if thismeta["TELESCOPE"]:
+      telescope = TELESCOPE_LATIN[thismeta["TELESCOPE"]]
     
-		foclen = TELESCOPE_PARAM_DIC.get(telescope)[0]
-		plate_size = TELESCOPE_PARAM_DIC.get(telescope)[1]
+    foclen = TELESCOPE_PARAM_DIC.get(telescope)[0]
+    plate_size = TELESCOPE_PARAM_DIC.get(telescope)[1]
     field = TELESCOPE_PARAM_DIC.get(telescope)[2]
     coor_plate_diameter = TELESCOPE_PARAM_DIC.get(telescope)[3]
     mirror_diameter =  TELESCOPE_PARAM_DIC.get(telescope)[4]
     
     observer = OBSERVERS_LATIN[thismeta["OBSERVER"]]
 
-		variable_arguments = get_exposure_cards(thismeta["EXPTIME"])
+    variable_arguments = get_exposure_cards(thismeta["EXPTIME"])
     variable_arguments.update(get_dates_card(thismeta["DATE-OBS"])
 
     if thismeta["TMS-LST"]:
