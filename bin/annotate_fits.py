@@ -568,8 +568,11 @@ class PAHeaderAdder(api.HeaderProcessor):
       FIELD2=field[1],
       MIR_DIAM=mirror_diameter,
       CP_DIAM=corr_plate_diameter,
+      SCANERS1=1200
+      SCANERS2=1200
       PRE_PROC="Cleaning from dust with a squirrel brush and from contamination from the glass (not an emulsion) with paper napkins",
-			**variable_arguments)
+      PID=thismeta["ID"],
+      **variable_arguments)
 
 
 if __name__=="__main__":
