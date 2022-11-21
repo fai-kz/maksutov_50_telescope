@@ -12,15 +12,19 @@ import sys
 from gavo.helpers import fitstricks
 from gavo import api
 
+import numpy as np
+
 TELESCOPE_LATIN = {
   "50cm менисковый телескоп Максутова":
     "Wide aperture Maksutov meniscus telescope with main mirror 50 cm",
-  "Большой Шмидт": "Schmidt telescope (large camera)"}
+  "Большой Шмидт": "Schmidt tellarge camera)",
+  "Малый Шмидт": "Schmidt telesmall camera)"}
 
-FOCAL_LENGTHS = {
-  "Wide aperture Maksutov meniscus telescope with main mirror 50 cm": 1.2,
-  "Schmidt telescope (large camera)": 0.773,
-  "Schmidt telescope (small camera)":0.17}
+    
+    TELESCOPE_PARAM_DIC = { #foclen[mm],pltsize[cm],field[deg],coorplate_diam[mm],mirror_diam[mm]
+  "Wide aperture Maksutov meniscus telescope with main mirror 50 cm":[1200,[9,9.8],[5.2,5.7],500,660],
+  "Schmidt telescope (large camera)": [773,[9,12],[6.2,9.9],397,np.NaN],
+  "Schmidt telescope (small camera)": [170,[3.3,3.3],[10,10],np.NaN,190]}
     
 OBSERVERS_LATIN = {
   'Рожковский Д.А.': 'Rozhkovskij D.A.', 
@@ -520,10 +524,14 @@ class PAHeaderAdder(api.HeaderProcessor):
 		telescope = "unknown"
 		if thismeta["TELESCOPE"]:
 			telescope = TELESCOPE_LATIN[thismeta["TELESCOPE"]]
-
-		foclen = foclen_dic.get(telescope)
     
-		observer = OBSERVERS_LATIN[thismeta["OBSERVER"]]
+		foclen = TELESCOPE_PARAM_DIC.get(telescope)[0]
+		plate_size = TELESCOPE_PARAM_DIC.get(telescope)[1]
+    field = TELESCOPE_PARAM_DIC.get(telescope)[2]
+    coor_plate_diameter = TELESCOPE_PARAM_DIC.get(telescope)[3]
+    mirror_diameter =  TELESCOPE_PARAM_DIC.get(telescope)[4]
+    
+    observer = OBSERVERS_LATIN[thismeta["OBSERVER"]]
 
 		variable_arguments = get_exposure_cards(thismeta["EXPTIME"])
     variable_arguments.update(get_dates_card(thismeta["DATE-OBS"])
@@ -553,6 +561,14 @@ class PAHeaderAdder(api.HeaderProcessor):
 #	DATNAME=thismeta["DATNAME"]#we will add the corresponding column later
 			SCANAUTH="Shomshekova S., Umirbayeva A., Moshkina S.",
 			ORIGIN="Contant",
+      FOCLEN=foclen,
+      PLATESZ1=plate_size[0],
+      PLATESZ2=plate_size[1],
+      FIELD1=field[0],
+      FIELD2=field[1],
+      MIR_DIAM=mirror_diameter,
+      CP_DIAM=corr_plate_diameter,
+      PRE_PROC="Cleaning from dust with a squirrel brush and from contamination from the glass (not an emulsion) with paper napkins",
 			**variable_arguments)
 
 
