@@ -580,6 +580,9 @@ class PAHeaderAdder(api.AnetHeaderProcessor):
     hdulist.close()
     os.rename("foo.xyls", inName)
 
+  def _shouldRunAnet(self, srcName, header):
+    return False
+
   def _runAnet(self, srcName):
     hdulist = api.pyfits.open(srcName)
     hdulist[0].data = 65535.-hdulist[0].data
