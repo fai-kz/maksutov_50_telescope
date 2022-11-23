@@ -218,12 +218,12 @@ def get_tms_cards_lst(raw_times):
   returns dict of keyword-value pairs for the FITS headers for our raw
   local sidereal time of the start of observations.
 
-  >>> get_tms_cards("1h23m12s")
+  >>> get_tms_cards_lst("1h23m12s")
   {'TMS-ORIG': 'LST 01:23:12'}
-  >>> get_tms_cards("13h23m;5h13;12h15m54s")
+  >>> get_tms_cards_lst("13h23m;5h13;12h15m54s")
   {'TMS-ORIG': 'LST 13:23:00', 'TMS-OR1': 'LST 13:23:00', 'TMS-OR2': 'LST 05:13:00','TMS-OR3': 'LST 12:15:54'}
   """
-  times = time_lst(raw_times)
+  times = get_time_lst(raw_times)
   if len(times)==1:
     return {"TMS-ORIG": times[0]}
   else:
@@ -242,7 +242,7 @@ def get_tms_cards_lt(raw_times):
   >>> get_tms_cards_lt("13h23m;5h13;12h15m54s")
   {'TMS-ORIG': 'LT 13:23:00', 'TMS-OR1': 'LT 13:23:00', 'TMS-OR2': 'LT 05:13:00','TMS-OR3': 'LT 12:15:54'}
   """
-  times = time_lt(raw_times)
+  times = get_time_lt(raw_times)
   if len(times)==1:
     return {"TMS-ORIG": times[0]}
   else:
@@ -257,12 +257,12 @@ def get_tme_cards_lst(raw_times):
   returns dict of keyword-value pairs for the FITS headers for our raw
   local sidereal time of end of observations.
 
-  >>> get_tme_cards("1h23m12s")
+  >>> get_tme_cards_lst("1h23m12s")
   {'TME-ORIG': 'LST 01:23:12'}
-  >>> get_tme_cards("13h23m;5h13;12h15m54s")
+  >>> get_tme_cards_lst("13h23m;5h13;12h15m54s")
   {'TME-ORIG': 'LST 13:23:00', 'TME-OR1': 'LST 13:23:00', 'TME-OR2': 'LST 05:13:00','TME-OR3': 'LST 12:15:54'}
   """
-  times = time_lst(raw_times)
+  times = get_time_lst(raw_times)
   if len(times)==1:
     return {"TME-ORIG": times[0]}
   else:
@@ -281,7 +281,7 @@ def get_tme_cards_lt(raw_times):
   >>> get_tme_cards_lt("13h23m;5h13;12h15m54s")
   {'TME-ORIG': 'LT 13:23', 'TME-OR1': 'LT 13:23', 'TME-OR2': 'LT 05:13','TME-OR3': 'LT 12:15:54'}
   """
-  times = time_lt(raw_times)
+  times = get_time_lt(raw_times)
   if len(times)==1:
     return {"TME-ORIG": times[0]}
   else:
@@ -333,11 +333,11 @@ def reformat_dec(raw_dec):
   returns declination in the format "dd:mm:ss".
 
   >>> reformat_dec("29.06")
-  '29:03:36'
+  '+29:03:36'
   >>> reformat_dec("-23.30")
   '-23:18:00'
   >>> reformat_dec("50 41 45")
-  '50:41:45'
+  '+50:41:45'
   >>> reformat_dec("-01 28 02")
   '-01:28:02'
   >>> reformat_dec("-01 28")
@@ -347,8 +347,7 @@ def reformat_dec(raw_dec):
     dec_to_deg(raw_dec), 
     sepChar=":", 
     secondFracs=0,
-    preserveLeading=True,
-    addSign=False)
+    preserveLeading=True)
 
 
 RA_FORMATS = [re.compile(pat) for pat in [
