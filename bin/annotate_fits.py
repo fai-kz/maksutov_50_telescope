@@ -143,50 +143,58 @@ def add_zero(num):
   else:
     return str(num)
 
-# TODO: compile the REs
-TIME_FORMATS = [
-  (r"(?P<hours>\d+(?:\.h?\d+)?h?)$", "{hours}"),
-  (r"(?P<hours>\d+h)(?P<minutes>\d+(?:\.m?\d)?m?)?$", "{hours}:{minutes}"), 
-  (r"(?P<hours>\d+h)(?P<minutes>\d+?m?)(?P<seconds>\d+(?:\.s?\d)?s?)?$", "{hours}:{minutes}:{seconds}")
-]
+TIME_FORMATS = [re.compile(pat) for pat in [
+  r"(?P<hours>\d+)h$",
+  r"(?P<hours>\d+\.h\d+)$",
+  r"(?P<hours>\d+)h(?P<minutes>\d+)m?$",
+  r"(?P<hours>\d+h)(?P<minutes>\d+)m(?P<seconds>\d+)s?$",
+]]
     
 def reformat_single_time(raw_time):
   """  
   returns time in format hh:mm:ss
-  >>> reformat_single_time(2h23m23s)
+
+  >>> reformat_single_time("12.h5")
+  '12:30:00'
+  >>> reformat_single_time("2h23m23s")
   '02:23:23'
-  >>> reformat_single_time(5h31m)
+  >>> reformat_single_time("5h31")
   '05:31:00'
-  >>> reformat_single_time(13h54)
-  '13:54:00'
+  >>> reformat_single_time("5h31m")
+  '05:31:00'
+  >>> reformat_single_time("13h54m24s")
+  '13:54:24'
+  >>> reformat_single_time("13h54m24")
+  '13:54:24'
+  >>> reformat_single_time("h20m2")
+  Traceback (most recent call last):
+  ValueError: Not a valid time h20m2
   """
-  for pattern, format_string in TIME_FORMATS:
+  for pattern in TIME_FORMATS:
     mat = re.match(pattern, raw_time)
     if mat:
-      return format_string.format(**mat.groupdict())
-  raise ValueError(f"Not a valid time {raw_time}")
+      break
+  else:
+    raise ValueError(f"Not a valid time {raw_time}")
 
   parts = mat.groupdict()
-  for key in parts.keys():
-    if parts[key]:
-      parts[key] = add_zero(parts[key])
-  if parts["second"]:
-    return "{}:{}:{}".format(parts["hours"].replace("h",""),parts["minutes"].replace("m",""),parts["seconds"].replace("s",""))
-  else:  
-    return "{}:{}:00".format(parts["hours"].replace("h",""),parts["minutes"].replace("m","")) 
+  hours = (float(parts.get("hours", 0).replace('h', ''))
+    + float(parts.get("minutes", 0))/60.
+    + float(parts.get("seconds", 0))/3600.)
+  return api.hoursToHms(hours)
 
 
 def reformat_time(raw_times):
   """
   returns time in format hh:mm:ss
   >>> reformat_time('2h23m23s;10h58m')
-  ['02:23:23','10:58']
+  ['02:23:23', '10:58:00']
   >>> reformat_time('5h31m;22h19m')
-  ['05:31:00','22:19:00']
+  ['05:31:00', '22:19:00']
   >>> reformat_time('1h54;13h49')
-  ['01:54:00','13:49:00']
+  ['01:54:00', '13:49:00']
   >>> reformat_time('2h23m23s;3h13m45s')
-  ['02:23:23','03:13:45']
+  ['02:23:23', '03:13:45']
   """
   return [reformat_single_time(time) for time in raw_times.split(";")]
 
@@ -279,6 +287,44 @@ def get_tme_cards_lt(raw_times):
       (f"TME-OR{n+1}", val) for n, val in enumerate(times)))
     return retval
 
+DEC_FORMATS = [re.compile(pat) for pat in [
+  r"(?P<sign>-?)(?P<degrees>\d+\.?\d*)$",
+  r"(?P<sign>-?)(?P<degrees>\d+) (?P<minutes>\d+)(?: (?P<seconds>\d+))?$",
+]]
+
+def dec_to_deg(raw_dec):
+  """
+  returns declanation as float in degrees.
+
+  >>> dec_to_deg("29.06")
+  29.06
+  >>> dec_to_deg("-23.30")
+  -23.3
+  >>> "{:.5f}".format(dec_to_deg("50 41 45"))
+  '50.69583'
+  >>> "{:.5f}".format(dec_to_deg("-01 28 02"))
+  '-1.46722'
+  >>> "{:.5f}".format(dec_to_deg("-01 28"))
+  '-1.46667'
+  """
+  for pattern in DEC_FORMATS:
+    mat = re.match(pattern, raw_dec)
+    if mat:
+      break
+  else:
+    raise ValueError(f"Not a valid Dec {raw_dec}")
+
+  parts = mat.groupdict()
+  deg = (float(parts["degrees"])
+    + float(parts.get("minutes", 0))/60.
+    + float(parts.get("seconds", 0) or 0)/3600.)
+
+  if parts["sign"]=="-":
+    return -deg
+  else:
+    return deg
+
+
 def reformat_dec(raw_dec):
   """
   returns declination in the format "dd:mm:ss".
@@ -292,32 +338,49 @@ def reformat_dec(raw_dec):
   >>> reformat_dec("-01 28 02")
   '-01:28:02'
   >>> reformat_dec("-01 28")
-  '-01:28'
+  '-01:28:00'
   """
+  return api.degToDms(
+    dec_to_deg(raw_dec), 
+    sepChar=":", 
+    secondFracs=0,
+    preserveLeading=True,
+    addSign=False)
 
-  if "." in raw_dec:
-    return api.degToDms(float(raw_dec), sepChar=":")
-  else:
-    return raw_dec.replace(" ", ":")
 
-def dec_to_deg(raw_dec):
+RA_FORMATS = [re.compile(pat) for pat in [
+  r"(?P<hours>\d+) (?P<minutes>\d+)(?: (?P<seconds>\d+))?$",
+  r"(?P<hours>\d+)h(?P<minutes>\d+)m(?:(?P<seconds>\d+)s)?$",
+  r"(?P<hours>\d+)h(?P<minutes>\d+)m?$",
+]]
+
+
+def ra_to_deg(raw_ra):
   """
   returns declanation as float in degrees.
 
-  >>> dec_to_deg("29.06")
-  29.06
-  >>> dec_to_deg("-23.30")
-  -23.3
-  >>> dec_to_deg("50 41 45")
-  50.69583
-  >>> dec_to_deg("-01 28 02")
-  -1.46722
-  >>> dec_to_deg("-01 28")
-  -1.46667
-  """
+  >>> "{:.5f}".format(ra_to_deg("05 32 49"))
+  '83.20417'
+  >>> ra_to_deg("05h33m")
+  83.25
+  >>> "{:.4f}".format(ra_to_deg("02h41m45s"))
+  '40.4375'
+  >>> ra_to_deg("01 28")
+  22.0
+  """  
+  for pattern in RA_FORMATS:
+    mat = re.match(pattern, raw_ra)
+    if mat:
+      break
+  else:
+    raise ValueError(f"Not a valid RA {raw_ra}")
 
-  format_dec = reformat_dec(raw_dec)
-  return api.dmsToDeg(format_deg,sepChar=":")
+  parts = mat.groupdict()
+  hours = (float(parts["hours"])
+    + float(parts["minutes"])/60.
+    + float(parts["seconds"] or 0)/3600.)
+  return hours/24*360
+
 
 def reformat_ra(raw_ra):
   """
@@ -329,57 +392,40 @@ def reformat_ra(raw_ra):
   '05:33:00'
   >>> reformat_ra("02h41m45s")
   '02:41:45'
-  >>> reformat_dec("01 28")
-  '01:28'
-  """  
-  if "h" in raw_ra:
-    mat = re.match(
-      r"^(?P<hours>\d+(?:\.\d+)?h)?"
-      r"(?P<minutes>\d+(?:\.\d+)?m)?"
-      r"(?P<seconds>\d+(?:\.\d+)?s)?$", raw_ra)
-    if mat is None:
-      raise ValueError(f"Cannot understand time '{raw_ra}'")
-    parts = mat.groupdict()   
-    return (parts["hours"][:-1] or '00') +':' + (parts["minutes"][:-1] or '00') + ':' + (parrts["seconds"][:-1] or '00')
-  else:
-    return raw_dec.replace(" ", ":")
-
-
-def ra_to_deg(raw_ra):
+  >>> reformat_ra("01 28")
+  '01:28:00'
+  >>> reformat_ra("12h")
+  Traceback (most recent call last):
+  ValueError: Not a valid RA 12h
   """
-  returns declanation as float in degrees.
-
-  >>> ra_to_deg("05 32 49")
-  83.20417
-  >>> ra_to_deg("05h33m")
-  83.25
-  >>> ra_to_deg("02h41m45s")
-  40.4375
-  >>> ra_to_deg("01 28")
-  22
-  """  
-
-  format_ra = reformat_ra(raw_ra)
-  return api.hmsToDeg(format_ra,sepChar=":")
+  return api.degToHms(ra_to_deg(raw_ra), sepChar=":", secondFracs=0)
 
 
-def check_year(raw_date):
+def expand_two_digit_year(raw_date):
+  """inserts a 19 in front of the year part of a d.m.y raw_date if we
+  sense a two-digit year.
+
+  >>> expand_two_digit_year("30.x1.29")
+  '30.x1.1929'
+  >>> expand_two_digit_year("30.x1.1929")
+  '30.x1.1929'
+  """
   date_split = raw_date.split(".")
   if len(date_split[-1])==4:
     return raw_date  
   else:
     return f'{date_split[0]}.{date_split[1]}.19{date_split[2]}'
 
+
 def parse_one_date(raw_date):
-  """
-  returns one date only (evining day, not exactly observation moment).
+  """returns the first part of a date or date interval.
  
   >>> parse_one_date('13.03.1956')
   '13.03.1956'
   >>> parse_one_date('13.04.76')
-   '13.04.1976'
+  '13.04.1976'
   >>> parse_one_date('01-02.01.1964')
-  '01.01.1964' 
+  '01.01.1964'
   >>> parse_one_date('01-02.01.64')
   '01.01.1964'
   >>> parse_one_date('31.08-01.09.1967')
@@ -387,54 +433,61 @@ def parse_one_date(raw_date):
   >>> parse_one_date('31.08-01.09.67')
   '31.08.1967'
   >>> parse_one_date('31.12.1965-01.01.1966')
-  '31.12.1965'  
+  '31.12.1965'
   >>> parse_one_date('31.12.65-01.01.66')
   '31.12.1965'
   >>> parse_one_date('31.12.65-01.01.1966')
   '31.12.1965'
   >>> parse_one_date('31.12.1965-01.01.66')
   '31.12.1965'
+  >>> parse_one_date('31.12.1965-01.66')
+  Traceback (most recent call last):
+  ValueError: not enough values to unpack (expected 3, got 2)
   """
-  if "-" not in raw_date:
-    date = check_year(raw_date)  
+  interval = raw_date.split("-")
+  if len(interval)==1:
+    start_parts = interval[0].split(".")
+
   else:
-    date_split = raw_data.replace(" ","").split("-")
-    ch = date_split[0]     
-    if len(ch)==2: #2 days
-      date = ch + check_year(date_split[1])[2:]   
-    if len(ch)>2 and len(ch)<8: #2 months
-      date = ch + check_year(date_split[1])[6:]
-    if len(ch)>=8:  #2 years
-      date = year_check(ch)
+    # complete the start date from parts of the end date
+    end_day, end_month, end_year = interval[1].split(".")
+    start_parts = interval[0].rstrip(".").split(".")
+    if len(start_parts)==1:
+      start_parts.extend([end_month, end_year])
+    elif len(start_parts)==2:
+      start_parts.append(end_year)
+  
+  if len(start_parts[-1])==2:
+    start_parts[-1] = "19"+start_parts[-1]
 
-  return date
+  return ".".join(start_parts)
 
 
-def parise_date(raw_dates):
-  """
-  returns evining date of observations.For more information look at pardse_one_data()
+def parse_date_list(raw_dates):
+  """returns evening date of observations.
 
-  >>> parse_date('13.03.1956;14.03.1956')
-  ['13.03.1956','14.03.1956']
-  >>> parse_date('13.04.76;14.04.76')
-   ['13.04.1976','14.04.1976']
-  >>> parse_date('01-02.01.1964;02-03.01.1964')
-  ['01.01.1964','02.01.1964'] 
-  >>> parse_date('01-02.01.64;02-03.01.64')
-  ['01-02.01.1964','02-03.01.1964']
-  >>> parse_date('31.08-01.09.1967;01-02.09.1967')
-  ['31.08.1967','01.09.1967']
-  >>> parse_date('31.08-01.09.67;01-02.09.67')
-  ['31.08.1967','01.09.1967']
-  >>> parse_date('31.12.1965-01.01.1966;01-02.01.1966')
-  ['31.12.1965','01.01.1966']  
-  >>> parse_date('31.12.65-01.01.66;01-02.01.66')
-  ['31.12.1965','01.01.66']
-  >>> parse_date('31.12.65-01.01.1966;01-02.01.1966')
-  ['31.12.1965','01.01.1966']
-   @
-  >>> parse_date('31.12.1965-01.01.66;01-02.01.1966')
-  ['31.12.1965','01.01.1966']
+  For more information look at parse_one_date()
+
+  >>> parse_date_list('13.03.1956;14.03.1956')
+  ['13.03.1956', '14.03.1956']
+  >>> parse_date_list('13.04.76;14.04.76')
+  ['13.04.1976', '14.04.1976']
+  >>> parse_date_list('01-02.01.1964;02-03.01.1964')
+  ['01.01.1964', '02.01.1964']
+  >>> parse_date_list('01-02.01.64;02-03.01.64')
+  ['01.01.1964', '02.01.1964']
+  >>> parse_date_list('31.08-01.09.1967;01-02.09.1967')
+  ['31.08.1967', '01.09.1967']
+  >>> parse_date_list('31.08-01.09.67;01-02.09.67')
+  ['31.08.1967', '01.09.1967']
+  >>> parse_date_list('31.12.1965-01.01.1966;01-02.01.1966')
+  ['31.12.1965', '01.01.1966']
+  >>> parse_date_list('31.12.65-01.01.66;01-02.01.66')
+  ['31.12.1965', '01.01.1966']
+  >>> parse_date_list('31.12.65-01.01.1966;01-02.01.1966')
+  ['31.12.1965', '01.01.1966']
+  >>> parse_date_list('31.12.1965-01.01.66;01-02.01.1966')
+  ['31.12.1965', '01.01.1966']
   """
   return [parse_one_date(raw_date)
     for raw_date in raw_dates.split(";")]
@@ -452,7 +505,7 @@ def get_date_cards(raw_dates):
   >>> get_date_cards('01-02.01.1964')
   {'DATEORIG': '01.01.1964'}
   """
-  dates = parse_date(raw_dates)
+  dates = parse_date_list(raw_dates)
   if len(dates)==1:
     return {"DATEORIG": dates[0]}
   else:
@@ -525,7 +578,7 @@ class PAHeaderAdder(api.AnetHeaderProcessor):
 
     cleaned_object = re.sub("[^ -~]+", "", thismeta["OBJECT"])
 
-    dateorig = parse_date(thismeta["DATEOBS"])
+    dateorig = parse_date_list(thismeta["DATEOBS"])
 
     #obj_type = thismeta["OBJTYPE"] #we will add the column with data later
 
