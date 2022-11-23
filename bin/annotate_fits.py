@@ -8,6 +8,9 @@ import glob
 import os
 import re
 import sys
+import tempfile
+
+import numpy
 
 from gavo.helpers import fitstricks
 from gavo import api
@@ -523,16 +526,17 @@ def run_tests(*args):
 
 
 class PAHeaderAdder(api.AnetHeaderProcessor):
-#  sp_total_timelimit = 60
-#  sp_lower_pix = 2
-#  sp_upper_pix = 4
-#  sp_endob = 50
+  sp_total_timelimit = 120
+  sp_lower_pix = 2
+  sp_upper_pix = 4
+  sp_endob = 100
+  sp_indices = ["index-421[012].fits", "index-4209.fits", "index-4208.fits"]
 
-#  sexControl = """
-#    DETECT_MINAREA   30
-#    DETECT_THRESH    3
-#    SEEING_FWHM      1.2
-#  """
+  sourceExtractorControl = """
+    DETECT_MINAREA   30
+    DETECT_THRESH    4
+    SEEING_FWHM      1.2
+  """
 
   @staticmethod
   def addOptions(optParser):
@@ -547,22 +551,47 @@ class PAHeaderAdder(api.AnetHeaderProcessor):
 
     for src_f in glob.glob(logs_dir+"/*.csv"):
       with open(src_f, "r", encoding="utf-8") as f:
-        rdr = csv.DictReader(f)
+        rdr = csv.DictReader(f, delimiter=";")
         desired_keys = dict(
           (n, (n or "EMPTY").split()[0]) for n in rdr.fieldnames)
         source_key = os.path.basename(src_f).split(".")[0]
 
-#        for rec in rdr:
-#          new_rec = {
-#            "source-file": source_key}
-#          for k, v in rec.items():
-#            new_key = desired_keys[k]
-#            if new_key=="Идентификационный":
-#              new_key = "ID"
-#              new_rec[new_key] = v
-#            recs.append(new_rec)
-
     self.platemeta = dict((rec["ID"], rec) for rec in recs)
+
+  def objectFilter(self, inName):
+    """throws out funny-looking objects from inName as well as objects
+    near the border.
+    """
+    hdulist = api.pyfits.open(inName)
+    data = hdulist[1].data
+    width = max(data.field("X_IMAGE"))
+    height = max(data.field("Y_IMAGE"))
+    badBorder = 0.2
+    data = data[data.field("ELONGATION")<1.2]
+    data = data[data.field("X_IMAGE")>width*badBorder]
+    data = data[data.field("X_IMAGE")<width-width*badBorder]
+    data = data[data.field("Y_IMAGE")>height*badBorder]
+    data = data[data.field("Y_IMAGE")<height-height*badBorder]
+
+    # the extra numpy.array below works around a bug in several versions
+    # of pyfits that would write the full, not the filtered array
+    hdu = api.pyfits.BinTableHDU(numpy.array(data))
+    hdu.writeto("foo.xyls")
+    hdulist.close()
+    os.rename("foo.xyls", inName)
+
+  def _runAnet(self, srcName):
+    hdulist = api.pyfits.open(srcName)
+    hdulist[0].data = 65535.-hdulist[0].data
+    del hdulist[0].header["IRAF-MAX"]
+    del hdulist[0].header["IRAF-MIN"]
+    with tempfile.NamedTemporaryFile() as tempf:
+      hdulist.writeto(tempf)
+
+      return anet.getWCSFieldsFor(tempf.name, self.solverParameters,
+        self.sourceExtractorControl, self.objectFilter, self.opts.copyTo,
+        self.indexPath,
+        self.opts.beVerbose)
 
   def _isProcessed(self, srcName):
     return os.path.exists(srcName+".hdr")
