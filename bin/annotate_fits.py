@@ -14,8 +14,6 @@ from gavo import api
 
 from gavo.helpers import anet
 
-import numpy as np
-
 anet.anetPath = "/usr/bin"
 anet.netIndexPath = "/var/share/astrometry-indexes"
 # Homework for Markus!!!!
@@ -148,8 +146,8 @@ def add_zero(num):
 # TODO: compile the REs
 TIME_FORMATS = [
   (r"(?P<hours>\d+(?:\.h?\d+)?h?)$", "{hours}"),
-  (r"(?P<hours>\d+h)(?P<minutes>\d+(\.m?\d)?m?)?$", "{hours}:{minutes}"), 
-  (r"(?P<hours>)>\d+h)(?P<minutes>\d+?m?)(?P<seconds>\d+(\.s?\d)?s?)?$", "{hours}:{minutes}:{seconds}"),
+  (r"(?P<hours>\d+h)(?P<minutes>\d+(?:\.m?\d)?m?)?$", "{hours}:{minutes}"), 
+  (r"(?P<hours>\d+h)(?P<minutes>\d+?m?)(?P<seconds>\d+(?:\.s?\d)?s?)?$", "{hours}:{minutes}:{seconds}")
 ]
     
 def reformat_single_time(raw_time):
@@ -168,28 +166,29 @@ def reformat_single_time(raw_time):
       return format_string.format(**mat.groupdict())
   raise ValueError(f"Not a valid time {raw_time}")
 
+  parts = mat.groupdict()
   for key in parts.keys():
     if parts[key]:
       parts[key] = add_zero(parts[key])
   if parts["second"]:
-    return "{}:{}:{}".format(parts["hours"],parts["minutes"],parts["seconds"])
+    return "{}:{}:{}".format(parts["hours"].replace("h",""),parts["minutes"].replace("m",""),parts["seconds"].replace("s",""))
   else:  
-    return "{}:{}".format(parts["hours"],parts["minutes"])  
+    return "{}:{}:00".format(parts["hours"].replace("h",""),parts["minutes"].replace("m","")) 
 
 
 def reformat_time(raw_times):
   """
   returns time in format hh:mm:ss
-  >>> reformat_time(2h23m23s;10h58m)
+  >>> reformat_time('2h23m23s;10h58m')
   ['02:23:23','10:58']
-  >>> reformat_time(5h31m;22h19m)
+  >>> reformat_time('5h31m;22h19m')
   ['05:31:00','22:19:00']
-  >>> reformat_time(1h54;13h49)
+  >>> reformat_time('1h54;13h49')
   ['01:54:00','13:49:00']
-  >>> reformat_time(2h23m23s;3h13m45s)
+  >>> reformat_time('2h23m23s;3h13m45s')
   ['02:23:23','03:13:45']
   """
-  return [reformat_one_tm(time) for time in raw_times.split(";")]
+  return [reformat_single_time(time) for time in raw_times.split(";")]
 
 def get_time_lt(raw_times):
   """
@@ -320,7 +319,7 @@ def dec_to_deg(raw_dec):
   format_dec = reformat_dec(raw_dec)
   return api.dmsToDeg(format_deg,sepChar=":")
 
-def reformat_ra(row_ra):
+def reformat_ra(raw_ra):
   """
   returns right ascension in the format "hh:mm:ss"
   
@@ -341,7 +340,7 @@ def reformat_ra(row_ra):
     if mat is None:
       raise ValueError(f"Cannot understand time '{raw_ra}'")
     parts = mat.groupdict()   
-    return (pats["hours"][:-1] or '00') +':' + (pats["minutes"][:-1] or '00') + ':' + (pats["seconds"][:-1] or '00')
+    return (parts["hours"][:-1] or '00') +':' + (parts["minutes"][:-1] or '00') + ':' + (parrts["seconds"][:-1] or '00')
   else:
     return raw_dec.replace(" ", ":")
 
@@ -383,28 +382,28 @@ def parse_one_date(raw_date):
   '01.01.1964' 
   >>> parse_one_date('01-02.01.64')
   '01.01.1964'
-   >>> parse_one_date('31.08-01.09.1967')
+  >>> parse_one_date('31.08-01.09.1967')
   '31.08.1967'
-   >>> parse_one_date('31.08-01.09.67')
+  >>> parse_one_date('31.08-01.09.67')
   '31.08.1967'
-   >>> parse_one_date('31.12.1965-01.01.1966')
+  >>> parse_one_date('31.12.1965-01.01.1966')
   '31.12.1965'  
-   >>> parse_one_date('31.12.65-01.01.66')
+  >>> parse_one_date('31.12.65-01.01.66')
   '31.12.1965'
-   >>> parse_one_date('31.12.65-01.01.1966')
+  >>> parse_one_date('31.12.65-01.01.1966')
   '31.12.1965'
-   >>> parse_one_date('31.12.1965-01.01.66')
+  >>> parse_one_date('31.12.1965-01.01.66')
   '31.12.1965'
   """
   if "-" not in raw_date:
     date = check_year(raw_date)  
   else:
-    date_split = raw_date.split("-")
+    date_split = raw_data.replace(" ","").split("-")
     ch = date_split[0]     
     if len(ch)==2: #2 days
       date = ch + check_year(date_split[1])[2:]   
     if len(ch)>2 and len(ch)<8: #2 months
-      date = ch + check_year(date_split[1])[5:]
+      date = ch + check_year(date_split[1])[6:]
     if len(ch)>=8:  #2 years
       date = year_check(ch)
 
@@ -423,17 +422,18 @@ def parise_date(raw_dates):
   ['01.01.1964','02.01.1964'] 
   >>> parse_date('01-02.01.64;02-03.01.64')
   ['01-02.01.1964','02-03.01.1964']
-   >>> parse_date('31.08-01.09.1967;01-02.09.1967')
+  >>> parse_date('31.08-01.09.1967;01-02.09.1967')
   ['31.08.1967','01.09.1967']
-   >>> parse_date('31.08-01.09.67;01-02.09.67')
+  >>> parse_date('31.08-01.09.67;01-02.09.67')
   ['31.08.1967','01.09.1967']
-   >>> parse_date('31.12.1965-01.01.1966;01-02.01.1966')
+  >>> parse_date('31.12.1965-01.01.1966;01-02.01.1966')
   ['31.12.1965','01.01.1966']  
-   >>> parse_date('31.12.65-01.01.66;01-02.01.66')
+  >>> parse_date('31.12.65-01.01.66;01-02.01.66')
   ['31.12.1965','01.01.66']
-   >>> parse_date('31.12.65-01.01.1966;01-02.01.1966')
+  >>> parse_date('31.12.65-01.01.1966;01-02.01.1966')
   ['31.12.1965','01.01.1966']
-   >>> parse_date('31.12.1965-01.01.66;01-02.01.1966')
+   @
+  >>> parse_date('31.12.1965-01.01.66;01-02.01.1966')
   ['31.12.1965','01.01.1966']
   """
   return [parse_one_date(raw_date)
@@ -470,16 +470,16 @@ def run_tests(*args):
 
 
 class PAHeaderAdder(api.AnetHeaderProcessor):
-  sp_total_timelimit = 60
-  sp_lower_pix = 2
-  sp_upper_pix = 4
-  sp_endob = 50
+#  sp_total_timelimit = 60
+#  sp_lower_pix = 2
+#  sp_upper_pix = 4
+#  sp_endob = 50
 
-  sexControl = """
-    DETECT_MINAREA   30
-    DETECT_THRESH    3
-    SEEING_FWHM      1.2
-  """
+#  sexControl = """
+#    DETECT_MINAREA   30
+#    DETECT_THRESH    3
+#    SEEING_FWHM      1.2
+#  """
 
   @staticmethod
   def addOptions(optParser):
@@ -499,15 +499,15 @@ class PAHeaderAdder(api.AnetHeaderProcessor):
           (n, (n or "EMPTY").split()[0]) for n in rdr.fieldnames)
         source_key = os.path.basename(src_f).split(".")[0]
 
-        for rec in rdr:
-          new_rec = {
-            "source-file": source_key}
-          for k, v in rec.items():
-            new_key = desired_keys[k]
-            if new_key=="Идентификационный":
-              new_key = "ID"
-              new_rec[new_key] = v
-            recs.append(new_rec)
+#        for rec in rdr:
+#          new_rec = {
+#            "source-file": source_key}
+#          for k, v in rec.items():
+#            new_key = desired_keys[k]
+#            if new_key=="Идентификационный":
+#              new_key = "ID"
+#              new_rec[new_key] = v
+#            recs.append(new_rec)
 
     self.platemeta = dict((rec["ID"], rec) for rec in recs)
 
@@ -530,7 +530,7 @@ class PAHeaderAdder(api.AnetHeaderProcessor):
     #obj_type = thismeta["OBJTYPE"] #we will add the column with data later
 
     numexp=len(parse_exposure_times(thismeta["EXPTIME"]))
-
+ 
     #observat
     observatory = "Fesenkov Astrophysical Institute"
     sitename = "https://www.fai.kz"
@@ -544,11 +544,15 @@ class PAHeaderAdder(api.AnetHeaderProcessor):
       telescope = TELESCOPE_LATIN[thismeta["TELESCOPE"]]
     
     foclen = TELESCOPE_PARAM_DIC.get(telescope)[0]
-    plate_size = TELESCOPE_PARAM_DIC.get(telescope)[1]
     field = TELESCOPE_PARAM_DIC.get(telescope)[2]
     coor_plate_diameter = TELESCOPE_PARAM_DIC.get(telescope)[3]
     mirror_diameter =  TELESCOPE_PARAM_DIC.get(telescope)[4]
-    
+   
+    if thismeta["SIZE"]:
+        plate_size = thismeta["SIZE"].split("*")
+    else:
+        plate_size = TELESCOPE_PARAM_DIC.get(telescope)[1]
+
     observer = OBSERVERS_LATIN[thismeta["OBSERVER"]]
 
     variable_arguments = get_exposure_cards(thismeta["EXPTIME"])
