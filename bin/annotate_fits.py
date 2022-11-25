@@ -17,11 +17,6 @@ from gavo import api
 
 from gavo.helpers import anet
 
-anet.anetPath = "/usr/bin"
-anet.netIndexPath = "/var/share/astrometry-indexes"
-# Homework for Markus!!!!
-anet.solverBin = os.path.join(anet.anetPath, "solve-field")
-
 
 TELESCOPE_LATIN = {
   "50cm менисковый телескоп Максутова":
@@ -551,11 +546,11 @@ class PAHeaderAdder(api.AnetHeaderProcessor):
   sp_lower_pix = 2
   sp_upper_pix = 4
   sp_endob = 100
-  sp_indices = ["index-421[012].fits", "index-4209.fits", "index-4208.fits"]
+  sp_indices = ["index-2mass-10.fits", "index-2mass-11.fits"]
 
   sourceExtractorControl = """
-    DETECT_MINAREA   30
-    DETECT_THRESH    4
+    DETECT_MINAREA   20
+    DETECT_THRESH    6
     SEEING_FWHM      1.2
   """
 
@@ -602,13 +597,11 @@ class PAHeaderAdder(api.AnetHeaderProcessor):
     os.rename("foo.xyls", inName)
 
   def _shouldRunAnet(self, srcName, header):
-    return False
+    return True
 
   def _runAnet(self, srcName):
     hdulist = api.pyfits.open(srcName)
     hdulist[0].data = 65535.-hdulist[0].data
-    del hdulist[0].header["IRAF-MAX"]
-    del hdulist[0].header["IRAF-MIN"]
     with tempfile.NamedTemporaryFile() as tempf:
       hdulist.writeto(tempf)
 
