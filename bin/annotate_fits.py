@@ -3,8 +3,8 @@ This is a DaCHS processor (http://docs.g-vo.org/DaCHS/processors.html)
 to add standard headers to FITS files from the FAI 50cm Maksutov telescope.
 """
 
+import base64
 import csv
-import glob
 import os
 import re
 import sys
@@ -26,12 +26,14 @@ anet.solverBin = os.path.join(anet.anetPath, "solve-field")
 TELESCOPE_LATIN = {
   "50cm менисковый телескоп Максутова":
     "Wide aperture Maksutov meniscus telescope with main mirror 50 cm",
-  "Большой Шмидт": "Schmidt tellarge camera)",
-  "Малый Шмидт": "Schmidt telesmall camera)"}
+  "Большой Шмидт": "Schmidt large camera)",
+  "Малый Шмидт": "Schmidt small camera)",
+  None: "Provenance lost"}
 
     #foclen[mm],pltsize[cm],field[deg],coorplate_diam[mm],mirror_diam[mm] 
 TELESCOPE_PARAM_DIC = { 
-    "Wide aperture Maksutov meniscus telescope with main mirror 50 cm":[1200,[9,9.8],[5.2,5.7],500,660],
+    "Wide aperture Maksutov meniscus telescope with main mirror 50 cm":
+      [1200,[9,9.8],[5.2,5.7],500,660],
     "Schmidt telescope (large camera)": [773,[9,12],[6.2,9.9],397,None],
     "Schmidt telescope (small camera)": [170,[3.3,3.3],[10,10],None,190]}
     
@@ -128,25 +130,6 @@ def get_exposure_cards(raw_exp_times):
       (f"EXPTIM{n+1}", val) for n, val in enumerate(exptimes)))
     return retval
 
-
-def add_zero(num):
-  """
-  returns "02" instead of "2"
-  here num is number in str format
-  
-  >>> add_zero("2")
-  '02'
-  >>> add_zero("02")
-  '02'
-  >>> add_zero("")
-  '00'
-  """
-  if len(str(num))<2 and len(str(num))!=0:
-    return "0"+str(num)
-  elif len(str(num))==0:
-    return "00"
-  else:
-    return str(num)
 
 TIME_FORMATS = [re.compile(pat) for pat in [
   r"(?P<hours>\d+)h$",
@@ -518,6 +501,7 @@ def get_date_cards(raw_dates):
       (f"DATEOR{n+1}", val) for n, val in enumerate(dates)))
     return retval
 
+
 def get_object_cards(raw_objects):
   """
   returns dictionary of keyword-value pairs for the FITS headers for our raw objects list
@@ -546,12 +530,23 @@ def run_tests(*args):
   sys.exit(doctest.testmod()[0])
 
 
+def defuse_international_string(s):
+  """returns a base64/utf-8-encoded version of a unicode string s.
+
+  (as a string, not as bytes).
+
+  >>> defuse_international_string("Максутова")
+  '0JzQsNC60YHRg9GC0L7QstCw'
+  """
+  return base64.b64encode(s.encode("utf-8")).decode("ascii")
+
+
 class PAHeaderAdder(api.AnetHeaderProcessor):
   sp_total_timelimit = 120
   sp_lower_pix = 2
   sp_upper_pix = 4
   sp_endob = 100
-  sp_indices = ["index-421[012].fits", "index-4209.fits", "index-4208.fits"]
+  sp_indices = ["index-421[012].fits"]
 
   sourceExtractorControl = """
     DETECT_MINAREA   30
@@ -566,19 +561,11 @@ class PAHeaderAdder(api.AnetHeaderProcessor):
       action="callback", callback=run_tests)
 
   def _createAuxiliaries(self, dd):
-    logs_dir = os.path.join(
-      dd.rd.resdir, "logbook")
-    recs = []
-
-    for src_f in glob.glob(logs_dir+"/*.csv"):
-      with open(src_f, "r", encoding="utf-8") as f:
-        rdr = csv.DictReader(f, delimiter=";")
-        desired_keys = dict(
-          (n, (n or "EMPTY").split()[0]) for n in rdr.fieldnames)
-        source_key = os.path.basename(src_f).split(".")[0]
-
-    self.platemeta = dict((rec["ID"], rec) for rec in recs)
-
+    log_path = os.path.join(dd.rd.resdir, "logbook", "logbook.csv")
+    with open(log_path, "r", encoding="utf-8") as f:
+      rdr = csv.DictReader(f, delimiter=",")
+      self.platemeta = dict((rec["ID"], rec) for rec in rdr)
+  
   def objectFilter(self, inName):
     """throws out funny-looking objects from inName as well as objects
     near the border.
@@ -618,6 +605,7 @@ class PAHeaderAdder(api.AnetHeaderProcessor):
         self.opts.beVerbose)
 
   def _isProcessed(self, srcName):
+# TODO: make the thing actually sense whether a new-style header is present
     return os.path.exists(srcName+".hdr")
 
   def _mungeHeader(self, srcName, hdr):
@@ -629,36 +617,15 @@ class PAHeaderAdder(api.AnetHeaderProcessor):
 #    mat = re.match(r"(\d\d)\.(\d\d)$", thismeta["DEC"])
 #    formatted_dec = "{}:{}".format(mat.group(1), mat.group(2))
 
-    cleaned_object = re.sub("[^ -~]+", "", thismeta["OBJECT"])
-
-
-
-    dateorig = parse_date_list(thismeta["DATEOBS"])
-
     #obj_type = thismeta["OBJTYPE"] #we will add the column with data later
 
     numexp=len(parse_exposure_times(thismeta["EXPTIME"]))
  
-    #observat
-    observatory = "Fesenkov Astrophysical Institute"
-    sitename = "https://www.fai.kz"
-    sitelong = 43.17667
-    sitelat = 76.96611
-    siteelev = 1450
-
-    if thismeta["FOCUS"]:
-        focus = thismeta["FOCUS"]
-
-    method = METHOD_ENG.get(thismeta["METHOD"])
-
-    #telescope
-    telescope = "unknown"
-    if thismeta["TELESCOPE"]:
-      telescope = TELESCOPE_LATIN[thismeta["TELESCOPE"]]
+    telescope = TELESCOPE_LATIN[thismeta.get("TELESCOPE")]
     
     foclen = TELESCOPE_PARAM_DIC.get(telescope)[0]
     field = TELESCOPE_PARAM_DIC.get(telescope)[2]
-    coor_plate_diameter = TELESCOPE_PARAM_DIC.get(telescope)[3]
+    corr_plate_diameter = TELESCOPE_PARAM_DIC.get(telescope)[3]
     mirror_diameter =  TELESCOPE_PARAM_DIC.get(telescope)[4]
    
     if thismeta["SIZE"]:
@@ -669,8 +636,8 @@ class PAHeaderAdder(api.AnetHeaderProcessor):
     observer = OBSERVERS_LATIN.get(thismeta["OBSERVER"])
 
     variable_arguments = get_exposure_cards(thismeta["EXPTIME"])
-    variable_arguments.update(get_dates_card(thismeta["DATE-OBS"]))
-    variable.arguments.update(get_object_cards(thismeta["OBJECT"]))
+    variable_arguments.update(get_date_cards(thismeta["DATE-OBS"]))
+    variable_arguments.update(get_object_cards(thismeta["OBJECT"]))
     if thismeta["TMS-LST"]:
       variable_arguments.update(get_tms_cards_lst(thismeta["TMS-LST"]))
     elif thismeta["TMS-LST"]:
@@ -680,42 +647,48 @@ class PAHeaderAdder(api.AnetHeaderProcessor):
       variable_arguments.update(get_tme_cards_lst(thismeta["TME-LST"]))
     else:
       variable_arguments.update(get_tme_cards_lt(thismeta["TME-LST"]))
-    
+   
+    for to_delete in ["IRAF-MAX", "IRAF-MIN", "IRAF-BPX"]:
+      del hdr[to_delete]
+
     return fitstricks.makeHeaderFromTemplate(
       fitstricks.WFPDB_TEMPLATE,
-      originalHeader=hdr,
-#      RA_ORIG=formatted_ra,
-#      DEC_ORIG=formatted_dec,
-      RA_ORIG=reformat_ra(thismeta["RA"]),
-      DEC_ORIG=reformat_dec(thismeta["DEC"]),
-      RA_DEG=ra_to_deg(thismeta["RA"]),
-      DEC_DEG=dec_to_deg(thismeta["DEC"]),
-      OBSERVER=observer,
-      NUMEXP=numexp,
-#  DATNAME=thismeta["DATNAME"]#we will add the corresponding column later
-      SCANAUTH="Shomshekova S., Umirbayeva A., Moshkina S.",
-      ORIGIN="Contant",
-      FOCLEN=foclen,
-      FOCUS=focus,
-      METHOD= method,
-      PLATESZ1=plate_size[0],
-      PLATESZ2=plate_size[1],
-      FIELD1=field[0],
-      FIELD2=field[1],
-      MIR_DIAM=mirror_diameter,
-      CP_DIAM=corr_plate_diameter,
-      SCANERS1=1200,
-      SCANERS2=1200,
-      PRE_PROC="Cleaning from dust with a squirrel brush and from contamination from the glass (not an emulsion) with paper napkins",
-      PID=thismeta["ID"],
-      NOTES=thismeta["NOTES"],
-      PLATNOTE=thismeta["PLATNOTE"],
-      FILTER=thismeta["FILTER"],
-      SCANNOTE=thismeta["SCANNOTE"],
-      DETNAME=thismeta["DETNAME"],
-      EMULSION=["EMULSION"],
-      SKYCOND=thismeta["SKYCOND"],
-      OBSNOTE=thismeta["OBSNOTE"],
+      originalHeader = hdr,
+      RA_ORIG = reformat_ra(thismeta["RA"]),
+      DEC_ORIG = reformat_dec(thismeta["DEC"]),
+      RA_DEG = ra_to_deg(thismeta["RA"]),
+      DEC_DEG = dec_to_deg(thismeta["DEC"]),
+      OBSERVER = observer,
+      OBSERVAT = "Fesenkov Astrophysical Institute",
+      SITELONG = 43.17667,
+      SITELAT = 76.96611,
+      SITEELEV = 1450,
+      TELESCOP = telescope,
+      NUMEXP = numexp,
+      SCANAUTH = "Shomshekova S., Umirbayeva A., Moshkina S.",
+      ORIGIN = "Contant",
+      FOCLEN = foclen,
+      FOCUS = thismeta.get("FOCUS"),
+      METHOD = METHOD_ENG.get(thismeta["METHOD"]),
+      PLATESZ1 = plate_size[0],
+      PLATESZ2 = plate_size[1],
+      FIELD1 = field[0],
+      FIELD2 = field[1],
+      OTA_DIAM = mirror_diameter,
+      OTA_APER = corr_plate_diameter,
+      SCANERS1 = 1200,
+      SCANERS2 = 1200,
+      PRE_PROC = "Cleaning from dust with a squirrel brush and from contamination from the glass (not an emulsion) with paper napkins",
+      PID = thismeta["ID"],
+      FILTER = defuse_international_string(thismeta["FILTER"]),
+      NOTES = defuse_international_string(thismeta["NOTES"]),
+      PLATNOTE = defuse_international_string(thismeta["PLATNOTE"]),
+      SCANNOTE = defuse_international_string(thismeta["SCANNOTE"]),
+      OBSNOTE = defuse_international_string(thismeta["OBSNOTE"]),
+      # Emulsion should really be translated
+      EMULSION = defuse_international_string(thismeta["EMULSION"]),
+      DETNAME = thismeta["DETNAME"],
+      SKYCOND = thismeta["SKYCOND"],
       **variable_arguments)
 
 
