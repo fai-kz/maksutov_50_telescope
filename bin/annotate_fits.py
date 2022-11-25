@@ -51,6 +51,8 @@ OBSERVERS_LATIN = {
   'Рожковский Д.А.   Городецкий Д.И.':'Rozhkovskij D.A.   Gordetskij D.I.',
   'Солодовников В.В.': 'Solodovnikov V.V.'}
 
+METHOD_ENG = {"метод Меткофа": "Metkof method",
+    "метод Меткофа-Блажко":"Metkof-Blazhko method"}
 
 
 def parse_single_time(raw_time):
@@ -221,7 +223,7 @@ def get_tms_cards_lst(raw_times):
   >>> get_tms_cards_lst("1h23m12s")
   {'TMS-ORIG': 'LST 01:23:12'}
   >>> get_tms_cards_lst("13h23m;5h13;12h15m54s")
-  {'TMS-ORIG': 'LST 13:23:00', 'TMS-OR1': 'LST 13:23:00', 'TMS-OR2': 'LST 05:13:00','TMS-OR3': 'LST 12:15:54'}
+  {'TMS-ORIG': 'LST 13:23:00', 'TMS-OR1': 'LST 13:23:00', 'TMS-OR2': 'LST 05:13:00', 'TMS-OR3': 'LST 12:15:54'}
   """
   times = get_time_lst(raw_times)
   if len(times)==1:
@@ -240,7 +242,7 @@ def get_tms_cards_lt(raw_times):
   >>> get_tms_cards_lt("1h23m12s")
   {'TMS-ORIG': 'LT 01:23:12'}
   >>> get_tms_cards_lt("13h23m;5h13;12h15m54s")
-  {'TMS-ORIG': 'LT 13:23:00', 'TMS-OR1': 'LT 13:23:00', 'TMS-OR2': 'LT 05:13:00','TMS-OR3': 'LT 12:15:54'}
+  {'TMS-ORIG': 'LT 13:23:00', 'TMS-OR1': 'LT 13:23:00', 'TMS-OR2': 'LT 05:13:00', 'TMS-OR3': 'LT 12:15:54'}
   """
   times = get_time_lt(raw_times)
   if len(times)==1:
@@ -260,7 +262,7 @@ def get_tme_cards_lst(raw_times):
   >>> get_tme_cards_lst("1h23m12s")
   {'TME-ORIG': 'LST 01:23:12'}
   >>> get_tme_cards_lst("13h23m;5h13;12h15m54s")
-  {'TME-ORIG': 'LST 13:23:00', 'TME-OR1': 'LST 13:23:00', 'TME-OR2': 'LST 05:13:00','TME-OR3': 'LST 12:15:54'}
+  {'TME-ORIG': 'LST 13:23:00', 'TME-OR1': 'LST 13:23:00', 'TME-OR2': 'LST 05:13:00', 'TME-OR3': 'LST 12:15:54'}
   """
   times = get_time_lst(raw_times)
   if len(times)==1:
@@ -279,7 +281,7 @@ def get_tme_cards_lt(raw_times):
   >>> get_tme_cards_lt("1h23m12s")
   {'TME-ORIG': 'LT 01:23:12'}
   >>> get_tme_cards_lt("13h23m;5h13;12h15m54s")
-  {'TME-ORIG': 'LT 13:23', 'TME-OR1': 'LT 13:23', 'TME-OR2': 'LT 05:13','TME-OR3': 'LT 12:15:54'}
+  {'TME-ORIG': 'LT 13:23:00', 'TME-OR1': 'LT 13:23:00', 'TME-OR2': 'LT 05:13:00', 'TME-OR3': 'LT 12:15:54'}
   """
   times = get_time_lt(raw_times)
   if len(times)==1:
@@ -516,6 +518,26 @@ def get_date_cards(raw_dates):
       (f"DATEOR{n+1}", val) for n, val in enumerate(dates)))
     return retval
 
+def get_object_cards(raw_objects):
+  """
+  returns dictionary of keyword-value pairs for the FITS headers for our raw objects list
+
+  >>> get_object_cards("Th4-4")
+  {'OBJECT': 'Th4-4'}
+  >>> get_object_cards("NGC6611;NGC6618")
+  {'OBJECT': 'NGC6611', 'OBJECT1': 'NGC6611', 'OBJECT2': 'NGC6618'}
+  """
+  
+  objects=raw_objects.split(";")
+  if len(objects)==1:
+    return {"OBJECT": objects[0]}
+  else:
+    retval = {"OBJECT": objects[0]}
+    retval.update(dict(
+      (f"OBJECT{n+1}",val) for n,val in enumerate(objects)))
+    return retval
+
+
 def run_tests(*args):
   """
   runs all doctests and exits the program.
@@ -609,6 +631,8 @@ class PAHeaderAdder(api.AnetHeaderProcessor):
 
     cleaned_object = re.sub("[^ -~]+", "", thismeta["OBJECT"])
 
+
+
     dateorig = parse_date_list(thismeta["DATEOBS"])
 
     #obj_type = thismeta["OBJTYPE"] #we will add the column with data later
@@ -621,6 +645,11 @@ class PAHeaderAdder(api.AnetHeaderProcessor):
     sitelong = 43.17667
     sitelat = 76.96611
     siteelev = 1450
+
+    if thismeta["FOCUS"]:
+        focus = thismeta["FOCUS"]
+
+    method = METHOD_ENG.get(thismeta["METHOD"])
 
     #telescope
     telescope = "unknown"
@@ -637,11 +666,11 @@ class PAHeaderAdder(api.AnetHeaderProcessor):
     else:
         plate_size = TELESCOPE_PARAM_DIC.get(telescope)[1]
 
-    observer = OBSERVERS_LATIN[thismeta["OBSERVER"]]
+    observer = OBSERVERS_LATIN.get(thismeta["OBSERVER"])
 
     variable_arguments = get_exposure_cards(thismeta["EXPTIME"])
     variable_arguments.update(get_dates_card(thismeta["DATE-OBS"]))
-
+    variable.arguments.update(get_object_cards(thismeta["OBJECT"]))
     if thismeta["TMS-LST"]:
       variable_arguments.update(get_tms_cards_lst(thismeta["TMS-LST"]))
     elif thismeta["TMS-LST"]:
@@ -662,12 +691,13 @@ class PAHeaderAdder(api.AnetHeaderProcessor):
       RA_DEG=ra_to_deg(thismeta["RA"]),
       DEC_DEG=dec_to_deg(thismeta["DEC"]),
       OBSERVER=observer,
-      OBJECT=cleaned_object,
       NUMEXP=numexp,
 #  DATNAME=thismeta["DATNAME"]#we will add the corresponding column later
       SCANAUTH="Shomshekova S., Umirbayeva A., Moshkina S.",
       ORIGIN="Contant",
       FOCLEN=foclen,
+      FOCUS=focus,
+      METHOD= method,
       PLATESZ1=plate_size[0],
       PLATESZ2=plate_size[1],
       FIELD1=field[0],
@@ -678,6 +708,14 @@ class PAHeaderAdder(api.AnetHeaderProcessor):
       SCANERS2=1200,
       PRE_PROC="Cleaning from dust with a squirrel brush and from contamination from the glass (not an emulsion) with paper napkins",
       PID=thismeta["ID"],
+      NOTES=thismeta["NOTES"],
+      PLATNOTE=thismeta["PLATNOTE"],
+      FILTER=thismeta["FILTER"],
+      SCANNOTE=thismeta["SCANNOTE"],
+      DETNAME=thismeta["DETNAME"],
+      EMULSION=["EMULSION"],
+      SKYCOND=thismeta["SKYCOND"],
+      OBSNOTE=thismeta["OBSNOTE"],
       **variable_arguments)
 
 
