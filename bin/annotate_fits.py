@@ -537,11 +537,12 @@ def defuse_international_string(s):
 
 
 class PAHeaderAdder(api.AnetHeaderProcessor):
+  indexPath = "/var/gavo/astrometry-indexes"
   sp_total_timelimit = 120
   sp_lower_pix = 2
   sp_upper_pix = 4
   sp_endob = 100
-  sp_indices = ["index-421[012].fits"]
+  sp_indices = ["index-2mass-1[012].fits"]
 
   sourceExtractorControl = """
     DETECT_MINAREA   20
@@ -561,7 +562,7 @@ class PAHeaderAdder(api.AnetHeaderProcessor):
       rdr = csv.DictReader(f, delimiter=",")
       self.platemeta = dict((rec["ID"], rec) for rec in rdr)
   
-  def objectFilter(self, inName):
+  def NOobjectFilter(self, inName):
     """throws out funny-looking objects from inName as well as objects
     near the border.
     """
@@ -585,17 +586,6 @@ class PAHeaderAdder(api.AnetHeaderProcessor):
 
   def _shouldRunAnet(self, srcName, header):
     return True
-
-  def _runAnet(self, srcName):
-    hdulist = api.pyfits.open(srcName)
-    hdulist[0].data = 65535.-hdulist[0].data
-    with tempfile.NamedTemporaryFile() as tempf:
-      hdulist.writeto(tempf)
-
-      return anet.getWCSFieldsFor(tempf.name, self.solverParameters,
-        self.sourceExtractorControl, self.objectFilter, self.opts.copyTo,
-        self.indexPath,
-        self.opts.beVerbose)
 
   def _isProcessed(self, srcName):
 # TODO: make the thing actually sense whether a new-style header is present
