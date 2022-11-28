@@ -588,8 +588,8 @@ class PAHeaderAdder(api.AnetHeaderProcessor):
     return True
 
   def _isProcessed(self, srcName):
-# TODO: make the thing actually sense whether a new-style header is present
-    return os.path.exists(srcName+".hdr")
+    hdr = self.getPrimaryHeader(srcName)
+    return "RA-ORIG" in hdr and "A_ORDER" in hdr
 
   def _mungeHeader(self, srcName, hdr):
     plateid = srcName.split(".")[-2].split("_")[-1]
