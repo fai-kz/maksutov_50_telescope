@@ -538,13 +538,18 @@ def defuse_international_string(s):
 
 class PAHeaderAdder(api.AnetHeaderProcessor):
   indexPath = "/usr/share/astrometry"
-  sp_total_timelimit = 120
+  sp_total_timelimit = 300
   sp_lower_pix = 2
   sp_upper_pix = 4
   sp_endob = 100
-  sp_indices = ["index-2mass-07*.fits", "index-2mass-08*.fits"]
+  sp_indices = ["index-2mass-07*.fits", "index-2mass-08*.fits", "index-2mass-09*", "index-2mass-1[012]*"]
 
   sourceExtractorControl = """
+    CATALOG_TYPE     FITS_1.0
+    CATALOG_NAME     img.axy
+    PARAMETERS_NAME  default.param
+    FILTER           N
+
     DETECT_MINAREA   20
     DETECT_THRESH    6
     SEEING_FWHM      1.2
