@@ -545,11 +545,6 @@ class PAHeaderAdder(api.AnetHeaderProcessor):
   sp_indices = ["index-2mass-07*.fits", "index-2mass-08*.fits", "index-2mass-09*", "index-2mass-1[012]*"]
 
   sourceExtractorControl = """
-    CATALOG_TYPE     FITS_1.0
-    CATALOG_NAME     img.axy
-    PARAMETERS_NAME  default.param
-    FILTER           N
-
     DETECT_MINAREA   20
     DETECT_THRESH    6
     SEEING_FWHM      1.2
