@@ -125,7 +125,6 @@ def get_exposure_cards(raw_exp_times):
       (f"EXPTIM{n+1}", val) for n, val in enumerate(exptimes)))
     return retval
 
-
 TIME_FORMATS = [re.compile(pat) for pat in [
   r"(?P<hours>\d+)h$",
   r"(?P<hours>\d+\.h\d+)$",
