@@ -30,18 +30,12 @@ The archive of digitized plates obtained on Wide aperture Maksutov meniscus tele
 
   <table id="main" onDisk="True" mixin="//siap#pgs" adql="False">
     
-    <!-- in the following, just delete any attribute you don't want to
-    set.
-    
-    Get the target class, if any, from 
-    http://simbad.u-strasbg.fr/guide/chF.htx -->
-   <!--  <mixin
+    <mixin
       calibLevel="2"
-      collectionName="'%a few letters identifying this data%'"
-      targetName="%column name of an object designation%"
-      expTime="%column name of an exposure time%"
-      targetClass="'%simbad target class%'"
-    >//obscore#publishSIAP</mixin> -->
+      collectionName="'FAI Mak50'"
+      targetName="objects[1]"
+      expTime="EXPTIME"
+    >//obscore#publishSIAP</mixin>
   
     <column name="objects" type="char(15)[]"
       ucd="meta.id;src"
