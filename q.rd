@@ -1,22 +1,20 @@
-<resource schema="fai50mak" resdir="fai50mak">
+<resource schema="maksutov_50_telescope" resdir="maksutov_50_telescope">
   <meta name="creationDate">2022-11-03T12:16:29Z</meta>
 
   <meta name="title">Archive of the FAI 50 cm Meniskus Maksutov telescope</meta>
 
   <meta name="description">
-The archive of digitized plates obtained on Wide aperture Maksutov meniscus telescope with main mirror 50 cm at the Fesenkov Astrophysical Institute (FAI), Almaty, Kazakhstan. They represent the results of photometric and spectral observations of stars, star clusrets, active galaxies, nebulaes, etc. for about 50 years - from 1950 to 1997.    
+The archive of digitized plates obtained on Wide aperture Maksutov meniscus telescope with main mirror 50 cm at the Fesenkov Astrophysical Institute (FAI), Almaty, Kazakhstan. 
+They represent the results of photometric observations of stars, comets, nebulae etc. for 50 years - from 1950 to 2000.    
   Observations were carried out in the optical range. Telescope specifications: diameter of main mirror D = 500 mm, focal length F = 1200 mm.
   </meta>
   <!-- Take keywords from 
     http://www.ivoa.net/rdf/uat
     if at all possible -->
   <meta name="subject">history-of-astronomy></meta>
-  <meta name="subject">active-galaxies</meta>
   <meta name="subject">gaseous-nebulae</meta>
-  <meta name="subject">star-clusters</meta>
   <meta name="subject">comets</meta>
-  <meta name="subject">binary-stars</meta>
-  <meta name="subject">multiple-stars</meta>
+  <meta name="subject">field-of-view</meta>
 
   <meta name="creator">Fesenkov Astrophysical Institute</meta>
   <meta name="instrument">Wide aperture Maksutov meniscus telescope with main mirror 50 cm</meta>
@@ -72,11 +70,11 @@ The archive of digitized plates obtained on Wide aperture Maksutov meniscus tele
 
   <coverage>
     <updater sourceTable="main"/>
-    <temporal>1950-01-01 1997-12-31</temporal>
+    <temporal>1950-01-01 2000-01-01</temporal>
   </coverage>
 
   <data id="import">
-    <sources pattern="data/*.fits"/>
+    <sources pattern="data/*.fit"/>
 
     <fitsProdGrammar>
       <rowfilter procDef="//products#define">
@@ -106,20 +104,20 @@ The archive of digitized plates obtained on Wide aperture Maksutov meniscus tele
           <!-- titles are what users usually see in a selection, so
             try to combine band, dateObs, object..., like
             "MyData {} {} {}".format(@DATE_OBS, @TARGET, @FILTER) -->
-          <bind key="title">@IRAFNAME</bind>
+          <bind key="title">"{}_{}_{}_{}".format(@OBJECT, @DATEORIG, @EXPTIME, @PID)</bind>
         </apply>
 
         <apply procDef="//siap#getBandFromFilter"/>
 
         <apply procDef="//siap#computePGS"/>
 
-        <apply procDef="//procs#mapValue">
+       <!-- <apply procDef="//procs#mapValue">
           <bind name="destination">"mapped_names"</bind>
           <bind name="failuresMapThrough">True</bind>
           <bind name="logFailures">False</bind>
           <bind name="value">@OBJECT</bind>
           <bind name="sourceName">"fai50mak/res/name-map.txt"</bind>
-        </apply>
+        </apply> -->
 
         <map key="target_ra">hmsToDeg(@OBJCTRA, sepChar=":")</map>
         <map key="target_dec">dmsToDeg(@OBJCTDEC, sepChar=":")</map>
