@@ -1806,8 +1806,8 @@ class PAHeaderAdder(api.AnetHeaderProcessor):
     if objtype:
       variable_arguments.update(get_objtype_cards(objtype))
       
-    if obj_name:
-      variable_arguments.update(get_object_cards(obj_name))
+    #if obj_name:
+    #  variable_arguments.update(get_object_cards(obj_name))
 
     if tms_lst:
       variable_arguments.update(get_time_start_cards(tms_lst, time_format))
@@ -1844,6 +1844,7 @@ class PAHeaderAdder(api.AnetHeaderProcessor):
     new_hdr = fitstricks.makeHeaderFromTemplate(
       fitstricks.WFPDB_TEMPLATE,
       originalHeader = hdr,
+      OBJECT = object.split(';')[0],
       DATE_OBS = date_obs_edit,
       RA_ORIG = ra_edit[0],
       DEC_ORIG = dec_edit[0],
