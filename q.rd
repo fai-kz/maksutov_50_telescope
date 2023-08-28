@@ -35,10 +35,10 @@ They represent the results of photometric observations of stars, comets, nebulae
       expTime="EXPTIME"
     >//obscore#publishSIAP</mixin>
   
-    <column name="objects" type="char(15)[]"
+    <column name="object" type="char(15)[]"
       ucd="meta.id;src"
       tablehead="Objs."
-      description="Names objects from the observation log."
+      description="Name of object from the observation log."
       verbLevel="3"/>
     <column name="target_ra"
       unit="deg" ucd="pos.eq.ra;meta.main"
@@ -111,18 +111,10 @@ They represent the results of photometric observations of stars, comets, nebulae
 
         <apply procDef="//siap#computePGS"/>
 
-       <!-- <apply procDef="//procs#mapValue">
-          <bind name="destination">"mapped_names"</bind>
-          <bind name="failuresMapThrough">True</bind>
-          <bind name="logFailures">False</bind>
-          <bind name="value">@OBJECT</bind>
-          <bind name="sourceName">"fai50mak/res/name-map.txt"</bind>
-        </apply> -->
-
         <map key="target_ra">hmsToDeg(@OBJCTRA, sepChar=":")</map>
         <map key="target_dec">dmsToDeg(@OBJCTDEC, sepChar=":")</map>
         <map key="observer" source="OBSERVER" nullExcs="KeyError"/>
-        <map key="objects">@mapped_names.split("|")</map>
+        <map key="object">@mapped_names.split("|")</map>
       </rowmaker>
     </make>
   </data>
@@ -136,7 +128,7 @@ They represent the results of photometric observations of stars, comets, nebulae
           tablehead="Target Object" 
           description="Object being observed, Simbad-resolvable form"
           ucd="meta.name">
-          <values fromdb="unnest(objects) FROM fai50mak.main"/>
+          <values fromdb="unnest(object) FROM maksutov_50_telescope.main"/>
       </inputKey>
       <phraseMaker>
         <setup imports="numpy"/>
@@ -150,12 +142,12 @@ They represent the results of photometric observations of stars, comets, nebulae
   </dbCore>
 
   <service id="web" allowed="form" core="imagecore">
-    <meta name="shortName">fai50mak web</meta>
+    <meta name="shortName">maksutov_50_telescope web</meta>
     <meta name="title">Web interface to FAI 50 cm Meniskus Maksutov
       telescope archive</meta>
     <outputTable autoCols="accref,accsize,centerAlpha,centerDelta,
         dateObs,imageTitle">
-      <outputField original="objects">
+      <outputField original="object">
         <formatter>
           return " - ".join(data)
         </formatter>
@@ -164,7 +156,7 @@ They represent the results of photometric observations of stars, comets, nebulae
   </service>
 
   <service id="i" allowed="form,siap.xml" core="imagecore">
-    <meta name="shortName">fai50mak siap</meta>
+    <meta name="shortName">maksutov_50_telescope siap</meta>
 
     <meta name="sia.type">Pointed</meta>
     
@@ -180,19 +172,19 @@ They represent the results of photometric observations of stars, comets, nebulae
 
   </service>
 
-  <regSuite title="fai50mak regression">
+  <regSuite title="maksutov_50_telescope regression">
     <!-- see http://docs.g-vo.org/DaCHS/ref.html#regression-testing
       for more info on these. -->
 
-    <regTest title="fai50mak SIAP serves some data">
+    <regTest title="maksutov_50_telescope SIAP serves some data">
       <url POS="84.2,9.3" SIZE="0.1,0.1"
         >i/siap.xml</url>
       <code>
         rows = self.getVOTableRows()
         self.assertEqual(len(rows), 1)
         row = rows[0]
-        self.assertEqual(row["objects"][0].strip(), "lam Ori")
-        self.assertEqual(len(row["objects"]), 1)
+        self.assertEqual(row["object"][0].strip(), "lam Ori")
+        self.assertEqual(len(row["object"]), 1)
         self.assertEqual(row["imageTitle"], 
                 'lambda-Ori_209-10.02.1958_20m_11-1964.fit')
       </code>

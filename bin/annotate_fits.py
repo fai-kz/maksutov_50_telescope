@@ -1505,7 +1505,7 @@ class PAHeaderAdder(api.AnetHeaderProcessor):
     os.rename("foo.xyls", inName)
 
   def _shouldRunAnet(self, srcName, header):
-    return False
+    return True #findme
 
   def _isProcessed(self, srcName):
     hdr = self.getPrimaryHeader(srcName)
@@ -1806,7 +1806,10 @@ class PAHeaderAdder(api.AnetHeaderProcessor):
     if objtype:
       variable_arguments.update(get_objtype_cards(objtype))
       
-    #if obj_name:
+    if obj_name:
+      object_name = obj_name.split(";")[0]
+    else:
+      object_name = None
     #  variable_arguments.update(get_object_cards(obj_name))
 
     if tms_lst:
@@ -1844,7 +1847,7 @@ class PAHeaderAdder(api.AnetHeaderProcessor):
     new_hdr = fitstricks.makeHeaderFromTemplate(
       fitstricks.WFPDB_TEMPLATE,
       originalHeader = hdr,
-      OBJECT = object.split(';')[0],
+      OBJECT = object_name,
       DATE_OBS = date_obs_edit,
       RA_ORIG = ra_edit[0],
       DEC_ORIG = dec_edit[0],
