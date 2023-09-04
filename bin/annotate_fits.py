@@ -1449,11 +1449,11 @@ def run_tests(*args):
 
 class PAHeaderAdder(api.AnetHeaderProcessor):
   indexPath = "/usr/share/astrometry" #path to indexes
-  sp_total_timelimit = 360 #maximum time for field solving
+  sp_total_timelimit = 180 #maximum time for field solving
   sp_lower_pix = 3 #the smallest permissible pixel size in arcsecs
   sp_upper_pix = 6 #the largest permissible pixel size in arcsecs
   sp_endob = 100 # last object to be processed
-  sp_indices = ["index-tycho2-0[89]*.fits","index-tycho2-1[0-9]*.fits"]# The file names from anet’s index directory you want to have used
+  sp_indices = ["index-41[01]*.fits"]# The file names from anet’s index directory you want to have used
 
   sourceExtractorControl = """
     DETECT_MINAREA   20
@@ -1475,7 +1475,7 @@ class PAHeaderAdder(api.AnetHeaderProcessor):
       action="callback", callback=run_tests)
 
   def _createAuxiliaries(self, dd):
-    log_path = os.path.join(dd.rd.resdir, "logbook", "logbook.csv")
+    log_path = os.path.join(dd.rd.resdir, "/var/gavo/inputs/logbook_archival", "logbook.csv")
     with open(log_path, "r", encoding="utf-8") as f:
       rdr = csv.DictReader(f, delimiter=",")
       self.platemeta = dict((rec["ID"].lower().replace("с","c"), rec) for rec in rdr)
@@ -1486,8 +1486,7 @@ class PAHeaderAdder(api.AnetHeaderProcessor):
     near the border.
     """
     
-    hdulist = api.pyfits.open(inName)
-    data_fits = hdulist[1].data
+
     width = max(data_fits.field("X_IMAGE"))
     height = max(data_fits.field("Y_IMAGE"))
     badBorder = 0.2
@@ -1505,7 +1504,17 @@ class PAHeaderAdder(api.AnetHeaderProcessor):
     os.rename("foo.xyls", inName)
 
   def _shouldRunAnet(self, srcName, header):
+    #try:
     return True #findme
+    #except gavo.helpers.processing.CannotComputeHeader as e:
+        # Handle CannotComputeHeader exception (astrometry failure)
+        #print(f"Astrometry failed for {srcName}: {e}")
+        # Optionally, log the error or take other actions if needed.
+
+    #except Exception as e:
+        # Handle other exceptions that may occur during astrometry or header modification
+    #    print(f"An error occurred for {srcName}: {e}")
+        # Optionally, log the error or take other actions if needed.
 
   def _isProcessed(self, srcName):
     hdr = self.getPrimaryHeader(srcName)
@@ -1516,8 +1525,9 @@ class PAHeaderAdder(api.AnetHeaderProcessor):
 
   def _mungeHeader(self, srcName, hdr):
     plateid = srcName.split(".")[-2].split("_")[-1].lower().replace("с","c")
+    print(plateid)
     data = self.platemeta[plateid]
-
+    
     thismeta = data
 
     objtype = data["OBJTYPE"] #we will add the column with data later
@@ -1843,6 +1853,7 @@ class PAHeaderAdder(api.AnetHeaderProcessor):
         date_obs_edit=date_obs_edit[0]
       else:
         date_obs_edit=date_obs_edit.fits
+
 
     new_hdr = fitstricks.makeHeaderFromTemplate(
       fitstricks.WFPDB_TEMPLATE,

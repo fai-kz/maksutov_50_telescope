@@ -74,7 +74,7 @@ They represent the results of photometric observations of stars, comets, nebulae
   </coverage>
 
   <data id="import">
-    <sources pattern="data/*.fit"/>
+    <sources pattern="/var/gavo/inputs/astroplates/maksutov_50_telescope/data/*.fit"/>
 
     <fitsProdGrammar>
       <rowfilter procDef="//products#define">
