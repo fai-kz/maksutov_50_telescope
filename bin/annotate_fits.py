@@ -1449,7 +1449,7 @@ def run_tests(*args):
 
 class PAHeaderAdder(api.AnetHeaderProcessor):
   indexPath = "/usr/share/astrometry" #path to indexes
-  sp_total_timelimit = 180 #maximum time for field solving
+  sp_total_timelimit = 30 #maximum time for field solving
   sp_lower_pix = 3 #the smallest permissible pixel size in arcsecs
   sp_upper_pix = 6 #the largest permissible pixel size in arcsecs
   sp_endob = 100 # last object to be processed
@@ -1505,7 +1505,10 @@ class PAHeaderAdder(api.AnetHeaderProcessor):
 
   def _shouldRunAnet(self, srcName, header):
     #try:
-    return True #findme
+    if "-st" in srcName or "Cal" in srcName:
+      return False
+    else:
+      return True #findme
     #except gavo.helpers.processing.CannotComputeHeader as e:
         # Handle CannotComputeHeader exception (astrometry failure)
         #print(f"Astrometry failed for {srcName}: {e}")
@@ -1519,8 +1522,9 @@ class PAHeaderAdder(api.AnetHeaderProcessor):
   def _isProcessed(self, srcName):
     hdr = self.getPrimaryHeader(srcName)
     self.fits_file = fits.open(srcName)
-    self.fits_name = srcName
+    if "/" in srcName:
     
+      self.fits_name = srcName.split("/")[-1].replace("–","-").encode("utf-8").decode("utf-8") 
     return "RA-ORIG" in hdr and "A_ORDER" in hdr
 
   def _mungeHeader(self, srcName, hdr):
@@ -1847,7 +1851,6 @@ class PAHeaderAdder(api.AnetHeaderProcessor):
       dec_edit=[None]
     if not plate_size:
       plate_size = [None, None]
-    
     if date_obs_edit:
       if type(date_obs_edit)==list:
         date_obs_edit=date_obs_edit[0]
@@ -1891,6 +1894,7 @@ class PAHeaderAdder(api.AnetHeaderProcessor):
       EMULSION = emulsion_edit,
       DETNAME = "Photographic plate",
       SKYCOND = skycond,
+      FILENAME = self.fits_name.replace('.fit',''),
       **variable_arguments)
     self.fits_file[0].header = new_hdr
     self.fits_file.writeto(self.fits_name, output_verify="fix",overwrite=True) 

@@ -31,7 +31,7 @@ They represent the results of photometric observations of stars, comets, nebulae
     <mixin
       calibLevel="2"
       collectionName="'FAI Mak50'"
-      targetName="objects[1]"
+      targetName="object"
       expTime="EXPTIME"
     >//obscore#publishSIAP</mixin>
   
@@ -103,18 +103,18 @@ They represent the results of photometric observations of stars, comets, nebulae
           
           <!-- titles are what users usually see in a selection, so
             try to combine band, dateObs, object..., like
-            "MyData {} {} {}".format(@DATE_OBS, @TARGET, @FILTER) -->
-          <bind key="title">"{}_{}_{}_{}".format(@OBJECT, @DATEORIG, @EXPTIME, @PID)</bind>
+            "MyData {} {} {}".format(@DATE_OBS, @TARGET, @FILTER)
+          <bind key="title">"{}_{}_{}_{}".format(@OBJECT, @DATEORIG, @EXPTIME, @PID)</bind>-->
+          <bind key="title">@FILENAME</bind>
         </apply>
 
         <apply procDef="//siap#getBandFromFilter"/>
 
         <apply procDef="//siap#computePGS"/>
 
-        <map key="target_ra">hmsToDeg(@OBJCTRA, sepChar=":")</map>
-        <map key="target_dec">dmsToDeg(@OBJCTDEC, sepChar=":")</map>
+        <map key="target_ra" source="OBJCTRA" nullExcs="KeyError"/>
+        <map key="target_dec" source="OBJCTDEC" nullExcs="KeyError"/>
         <map key="observer" source="OBSERVER" nullExcs="KeyError"/>
-        <map key="object">@mapped_names.split("|")</map>
       </rowmaker>
     </make>
   </data>
