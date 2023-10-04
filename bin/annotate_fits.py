@@ -1449,7 +1449,7 @@ def run_tests(*args):
 
 class PAHeaderAdder(api.AnetHeaderProcessor):
   indexPath = "/usr/share/astrometry" #path to indexes
-  sp_total_timelimit = 30 #maximum time for field solving
+  sp_total_timelimit = 180 #maximum time for field solving
   sp_lower_pix = 3 #the smallest permissible pixel size in arcsecs
   sp_upper_pix = 6 #the largest permissible pixel size in arcsecs
   sp_endob = 100 # last object to be processed
@@ -1522,9 +1522,9 @@ class PAHeaderAdder(api.AnetHeaderProcessor):
   def _isProcessed(self, srcName):
     hdr = self.getPrimaryHeader(srcName)
     self.fits_file = fits.open(srcName)
-    if "/" in srcName:
-    
+    if "/" in srcName: 
       self.fits_name = srcName.split("/")[-1].replace("–","-").encode("utf-8").decode("utf-8") 
+      print(self.fits_name)
     return "RA-ORIG" in hdr and "A_ORDER" in hdr
 
   def _mungeHeader(self, srcName, hdr):
@@ -1897,7 +1897,7 @@ class PAHeaderAdder(api.AnetHeaderProcessor):
       FILENAME = self.fits_name.replace('.fit',''),
       **variable_arguments)
     self.fits_file[0].header = new_hdr
-    self.fits_file.writeto(self.fits_name, output_verify="fix",overwrite=True) 
+    self.fits_file.writeto("/var/gavo/inputs/astroplates/maksutov_50_telescope/data/"+self.fits_name, output_verify="fix",overwrite=True) 
     return new_hdr
 
 if __name__=="__main__":
