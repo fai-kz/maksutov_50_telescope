@@ -141,11 +141,13 @@ They represent the results of photometric observations of stars, comets, nebulae
   </data>
 
   <service id="cal" allowed="form">
-    <meta name="title">FAI Calibration Data</meta>
+    <meta name="title">FAI Calibration Data for 50 cm Meniskus Maksutov telescope</meta>
     <meta name="description">
         This service collects plates taken for calibration purposes
-        on FAI's telescopes. XXX TODO What frames?  How to find what
-        to "apply" where?
+        on FAI's 50 cm Meniskus Maksutov telescope. 
+        Calibration frames are used for correction and enhancement of astronomical images.
+        They allow the conversion of optical densities of an image into relative intensities
+        and subtract the background radiation, making the data suitable for scientific analysis.
     </meta>
     <!-- TODO: Metadata -->
     <dbCore queriedTable="calibration">
