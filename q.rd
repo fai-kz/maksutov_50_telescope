@@ -46,7 +46,7 @@ They represent the results of photometric observations of stars, comets, nebulae
       description="Name of .fit file (object_date_exp_id.fit)."
       verbLevel="5"/>
     <column original="dateObs"
-      description="The date of observation from observational log."/>
+      description="The date of observation from observational log. (Y-M-D .. Y-M-D)"/>
     <column name="target_ra"
       unit="deg" ucd="pos.eq.ra;meta.main"
       tablehead="Target RA"
@@ -167,19 +167,27 @@ They represent the results of photometric observations of stars, comets, nebulae
     <condDesc buildFrom="dateObs"/>
     <condDesc>
       <inputKey name="object" type="text"
-          tablehead="Target Object" 
-          description="Object being observed, Simbad-resolvable form"
-          ucd="meta.name">
-          <values fromdb="object FROM maksutov_50_telescope.main"/>
+        tablehead="Target Object" 
+        description="Object being observed, Simbad-resolvable form"
+        ucd="meta.name"> 
+        <values fromdb="object FROM maksutov_50_telescope.main ORDER BY object"/>
       </inputKey>
-      <!--<phraseMaker>
+    </condDesc>
+    <!--<condDesc>
+      <inputKey name="object" type="text"
+        tablehead="Target Object" 
+        description="Object being observed, Simbad-resolvable form"
+        ucd="meta.name">
+        <values fromdb="object FROM maksutov_50_telescope.main"/>
+      </inputKey>
+      <phraseMaker>
         <setup imports="numpy"/>
         <code><![CDATA[
           yield "%({})s && object".format(
             base.getSQLKey("object", inPars["object"], outPars))
         ]]></code>
-      </phraseMaker>-->
-    </condDesc>
+      </phraseMaker>
+    </condDesc> -->
   </dbCore>
 
   <service id="web" allowed="form" core="imagecore">
